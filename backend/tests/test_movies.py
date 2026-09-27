@@ -119,3 +119,57 @@ async def test_create_movie_rejects_duplicated_external_id(
     assert first_response.status_code == 201
     assert duplicate_response.status_code == 409
     assert duplicate_response.json()["error"]["code"] == "movie_id_conflict"
+
+
+async def test_list_movies_returns_paginated_results_in_title_order(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+    for title in ["Zeta", "alpha", "Beta"]:
+        response = await client.post("/api/v1/movies", json={"titulo": title})
+        assert response.status_code == 201
+
+    first_page = await client.get("/api/v1/movies", params={"page": 1, "page_size": 2})
+    second_page = await client.get("/api/v1/movies", params={"page": 2, "page_size": 2})
+
+    assert first_page.status_code == 200
+    assert [movie["titulo"] for movie in first_page.json()["items"]] == ["alpha", "Beta"]
+    assert first_page.json()["pagination"] == {
+        "page": 1,
+        "page_size": 2,
+        "total_items": 3,
+        "total_pages": 2,
+    }
+    assert [movie["titulo"] for movie in second_page.json()["items"]] == ["Zeta"]
+
+
+async def test_list_movies_searches_title_case_insensitively(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+    for title in ["Central do Brasil", "Brasil", "Cidade de Deus"]:
+        response = await client.post("/api/v1/movies", json={"titulo": title})
+        assert response.status_code == 201
+
+    response = await client.get("/api/v1/movies", params={"search": "BRASIL"})
+
+    assert response.status_code == 200
+    assert [movie["titulo"] for movie in response.json()["items"]] == [
+        "Brasil",
+        "Central do Brasil",
+    ]
+    assert response.json()["pagination"]["total_items"] == 2
+
+
+async def test_list_movies_validates_pagination_limits(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+
+    invalid_page = await client.get("/api/v1/movies", params={"page": 0})
+    invalid_page_size = await client.get("/api/v1/movies", params={"page_size": 101})
+
+    assert invalid_page.status_code == 422
+    assert invalid_page.json()["error"]["code"] == "validation_error"
+    assert invalid_page_size.status_code == 422
+    assert invalid_page_size.json()["error"]["code"] == "validation_error"

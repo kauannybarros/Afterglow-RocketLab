@@ -14,6 +14,9 @@ from app.movies.schemas import (
     GenreRead,
     MovieCreate,
     MovieDetail,
+    MoviePage,
+    MovieSummary,
+    PaginationMeta,
     PersonRead,
     ReviewSummary,
 )
@@ -93,6 +96,49 @@ class MovieService:
             ) from exc
 
         return response
+
+    async def list_page(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None,
+    ) -> MoviePage:
+        normalized_search = search.strip() if search else None
+        movies, total_items = await self.repository.list_page(
+            page=page,
+            page_size=page_size,
+            search=normalized_search or None,
+        )
+        total_pages = (total_items + page_size - 1) // page_size
+
+        return MoviePage(
+            items=[self._to_summary(movie) for movie in movies],
+            pagination=PaginationMeta(
+                page=page,
+                page_size=page_size,
+                total_items=total_items,
+                total_pages=total_pages,
+            ),
+        )
+
+    @staticmethod
+    def _to_summary(movie: DimMovie) -> MovieSummary:
+        genres = sorted(movie.genres, key=lambda genre: genre.nome_genero.casefold())
+        summary = movie.reviews_summary
+
+        return MovieSummary(
+            sk_movie_id=movie.sk_movie_id,
+            id_filme=movie.id_filme,
+            titulo=movie.titulo,
+            ano_lancamento=movie.ano_lancamento,
+            url_poster=movie.url_poster,
+            generos=[GenreRead.model_validate(genre) for genre in genres],
+            avaliacoes=ReviewSummary(
+                qtd_avaliacoes=summary.qtd_avaliacoes_usuarios if summary else 0,
+                nota_media=summary.nota_media_usuarios if summary else None,
+            ),
+        )
 
     async def _resolve_people(self, payload: MovieCreate) -> list[DimPerson]:
         people = []

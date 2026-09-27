@@ -2,6 +2,7 @@
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.movies.models import DimCompany, DimGenre, DimMovie, DimPerson, PersonType
 
@@ -15,6 +16,32 @@ class MovieRepository:
     async def get_by_external_id(self, id_filme: str) -> DimMovie | None:
         result = await self.session.execute(select(DimMovie).where(DimMovie.id_filme == id_filme))
         return result.scalar_one_or_none()
+
+    async def list_page(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None,
+    ) -> tuple[list[DimMovie], int]:
+        filters = []
+        if search:
+            filters.append(DimMovie.titulo.icontains(search, autoescape=True))
+
+        total = await self.session.scalar(select(func.count(DimMovie.sk_movie_id)).where(*filters))
+        result = await self.session.execute(
+            select(DimMovie)
+            .where(*filters)
+            .options(
+                selectinload(DimMovie.genres),
+                selectinload(DimMovie.reviews_summary),
+            )
+            .order_by(func.lower(DimMovie.titulo), DimMovie.sk_movie_id)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+
+        return list(result.scalars()), total or 0
 
     async def get_or_create_genre(self, name: str) -> DimGenre:
         result = await self.session.execute(
