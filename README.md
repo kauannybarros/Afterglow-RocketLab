@@ -56,8 +56,37 @@ A tabela aceita diretamente as colunas `sk_movie_review_id`, `sk_movie_id`,
 `nome`, `nota` e `comentario` do CSV enviado separadamente. `created_at` é
 gerado pelo banco. O contexto generativo não faz parte desta base.
 
-O repositório não inclui CSVs nem rotinas de carga. Para usar avaliações,
-importe primeiro os filmes em `dim_movies` e depois o CSV de `movie_reviews`.
+Os CSVs não são versionados neste repositório. Depois de aplicar as migrações,
+faça uma validação completa dos arquivos sem alterar o banco:
+
+```bash
+cd backend
+.venv/bin/python -m app.db.import_csv \
+  --bases-1 ../../bases-1/bases_atv_dev1 \
+  --bases-2 ../../bases-2/bases_atv_dev_2 \
+  --dry-run
+```
+
+Para importar os dados:
+
+```bash
+.venv/bin/python -m app.db.import_csv \
+  --bases-1 ../../bases-1/bases_atv_dev1 \
+  --bases-2 ../../bases-2/bases_atv_dev_2
+```
+
+O importador:
+
+- valida a presença, o cabeçalho e os tipos dos dez arquivos;
+- processa os registros em lotes, sem carregar cada CSV inteiro na memória;
+- respeita a ordem das chaves estrangeiras;
+- usa uma transação por arquivo e interrompe a carga em dados inválidos;
+- pode ser executado novamente, atualizando registros existentes sem duplicá-los;
+- verifica a integridade das chaves estrangeiras ao final.
+
+Use `--batch-size` para ajustar o tamanho dos lotes e `--database-url` para
+selecionar outro arquivo SQLite. Por padrão, o comando usa o `DATABASE_URL`
+configurado no arquivo `.env`.
 
 As tabelas são criadas exclusivamente pelo Alembic. Para evoluir os modelos,
 crie uma revisão e aplique-a:
