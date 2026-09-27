@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.errors import ErrorResponse
@@ -33,6 +33,23 @@ async def list_movies(
         page_size=page_size,
         search=search,
     )
+
+
+@router.get(
+    "/{sk_movie_id}",
+    response_model=MovieDetail,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+    },
+)
+async def get_movie_detail(
+    sk_movie_id: Annotated[str, Path(min_length=1, max_length=64)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> MovieDetail:
+    """Retorna todas as informações e avaliações de um filme."""
+
+    return await MovieService(session).get_detail(sk_movie_id)
 
 
 @router.post(

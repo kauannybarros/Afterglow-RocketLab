@@ -2,7 +2,7 @@
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.movies.models import DimCompany, DimGenre, DimMovie, DimPerson, PersonType
 
@@ -42,6 +42,21 @@ class MovieRepository:
         )
 
         return list(result.scalars()), total or 0
+
+    async def get_detail(self, sk_movie_id: str) -> DimMovie | None:
+        result = await self.session.execute(
+            select(DimMovie)
+            .where(DimMovie.sk_movie_id == sk_movie_id)
+            .options(
+                selectinload(DimMovie.genres),
+                selectinload(DimMovie.companies),
+                selectinload(DimMovie.people),
+                selectinload(DimMovie.reviews),
+                joinedload(DimMovie.performance),
+                joinedload(DimMovie.reviews_summary),
+            )
+        )
+        return result.scalar_one_or_none()
 
     async def get_or_create_genre(self, name: str) -> DimGenre:
         result = await self.session.execute(

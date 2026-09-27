@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from decimal import Decimal
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -9,7 +10,15 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.db.session import enable_sqlite_foreign_keys, get_db
 from app.main import create_app
-from app.movies.models import DimCompany, DimGenre, DimMovie, DimPerson, DimReview
+from app.movies.models import (
+    DimCompany,
+    DimGenre,
+    DimMovie,
+    DimPerson,
+    DimReview,
+    FactMoviePerformance,
+    MovieReview,
+)
 
 TestSessionFactory = async_sessionmaker[AsyncSession]
 
@@ -173,3 +182,72 @@ async def test_list_movies_validates_pagination_limits(
     assert invalid_page.json()["error"]["code"] == "validation_error"
     assert invalid_page_size.status_code == 422
     assert invalid_page_size.json()["error"]["code"] == "validation_error"
+
+
+async def test_get_movie_detail_returns_relationships_performance_and_reviews(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, session_factory = movie_client
+    create_response = await client.post(
+        "/api/v1/movies",
+        json={
+            "titulo": "Central do Brasil",
+            "generos": ["Drama"],
+            "diretores": ["Walter Salles"],
+            "produtoras": ["Videofilmes"],
+        },
+    )
+    movie_id = create_response.json()["sk_movie_id"]
+
+    async with session_factory.begin() as session:
+        review_summary = await session.scalar(
+            select(DimReview).where(DimReview.sk_movie_id == movie_id)
+        )
+        assert review_summary is not None
+        review_summary.qtd_avaliacoes_usuarios = 1
+        review_summary.nota_media_usuarios = 9.5
+        session.add(
+            FactMoviePerformance(
+                sk_movie_id=movie_id,
+                lucro_usd=Decimal("100.00"),
+                lucro_brl=Decimal("500.00"),
+                popularidade=12.5,
+            )
+        )
+        session.add(
+            MovieReview(
+                sk_movie_id=movie_id,
+                nome="Ana",
+                nota=9.5,
+                comentario="Excelente filme.",
+            )
+        )
+
+    response = await client.get(f"/api/v1/movies/{movie_id}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["titulo"] == "Central do Brasil"
+    assert [genre["nome_genero"] for genre in body["generos"]] == ["Drama"]
+    assert [company["nome_produtora"] for company in body["produtoras"]] == ["Videofilmes"]
+    assert body["pessoas"][0]["tipo_pessoa"] == "Diretor"
+    assert body["avaliacoes"] == {"qtd_avaliacoes": 1, "nota_media": 9.5}
+    assert body["desempenho"]["popularidade"] == 12.5
+    assert body["reviews"][0]["nome"] == "Ana"
+    assert body["reviews"][0]["nota"] == 9.5
+    assert body["reviews"][0]["comentario"] == "Excelente filme."
+
+
+async def test_get_movie_detail_returns_not_found(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+
+    response = await client.get(f"/api/v1/movies/{'0' * 64}")
+
+    assert response.status_code == 404
+    assert response.json()["error"] == {
+        "code": "movie_not_found",
+        "message": "Filme não encontrado.",
+        "details": [],
+    }

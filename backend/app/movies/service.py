@@ -17,7 +17,9 @@ from app.movies.schemas import (
     MoviePage,
     MovieSummary,
     PaginationMeta,
+    PerformanceRead,
     PersonRead,
+    ReviewRead,
     ReviewSummary,
 )
 
@@ -83,6 +85,8 @@ class MovieService:
                         qtd_avaliacoes_usuarios=0,
                         nota_media_usuarios=None,
                     )
+                    movie.performance = None
+                    movie.reviews = []
 
                     self.session.add(movie)
 
@@ -122,10 +126,27 @@ class MovieService:
             ),
         )
 
+    async def get_detail(self, sk_movie_id: str) -> MovieDetail:
+        movie = await self.repository.get_detail(sk_movie_id)
+        if movie is None:
+            raise DomainError(
+                code="movie_not_found",
+                message="Filme não encontrado.",
+                status_code=404,
+            )
+        return self._to_detail(movie)
+
+    @staticmethod
+    def _review_summary(movie: DimMovie) -> ReviewSummary:
+        summary = movie.reviews_summary
+        return ReviewSummary(
+            qtd_avaliacoes=summary.qtd_avaliacoes_usuarios if summary else 0,
+            nota_media=summary.nota_media_usuarios if summary else None,
+        )
+
     @staticmethod
     def _to_summary(movie: DimMovie) -> MovieSummary:
         genres = sorted(movie.genres, key=lambda genre: genre.nome_genero.casefold())
-        summary = movie.reviews_summary
 
         return MovieSummary(
             sk_movie_id=movie.sk_movie_id,
@@ -134,10 +155,7 @@ class MovieService:
             ano_lancamento=movie.ano_lancamento,
             url_poster=movie.url_poster,
             generos=[GenreRead.model_validate(genre) for genre in genres],
-            avaliacoes=ReviewSummary(
-                qtd_avaliacoes=summary.qtd_avaliacoes_usuarios if summary else 0,
-                nota_media=summary.nota_media_usuarios if summary else None,
-            ),
+            avaliacoes=MovieService._review_summary(movie),
         )
 
     async def _resolve_people(self, payload: MovieCreate) -> list[DimPerson]:
@@ -169,6 +187,10 @@ class MovieService:
             movie.people,
             key=lambda person: (person.tipo_pessoa, person.nome_pessoa.casefold()),
         )
+        reviews = sorted(
+            movie.reviews,
+            key=lambda review: (review.created_at, review.sk_movie_review_id),
+        )
 
         return MovieDetail(
             sk_movie_id=movie.sk_movie_id,
@@ -184,7 +206,9 @@ class MovieService:
             generos=[GenreRead.model_validate(genre) for genre in genres],
             produtoras=[CompanyRead.model_validate(company) for company in companies],
             pessoas=[PersonRead.model_validate(person) for person in people],
-            avaliacoes=ReviewSummary(qtd_avaliacoes=0, nota_media=None),
-            desempenho=None,
-            reviews=[],
+            avaliacoes=MovieService._review_summary(movie),
+            desempenho=(
+                PerformanceRead.model_validate(movie.performance) if movie.performance else None
+            ),
+            reviews=[ReviewRead.model_validate(review) for review in reviews],
         )
