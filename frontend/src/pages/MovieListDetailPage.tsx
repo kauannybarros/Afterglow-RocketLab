@@ -65,6 +65,7 @@ export function MovieListDetailPage() {
           </Link>
           <span className="list-detail-hero__icon"><ListIcon /></span>
           <span className="eyebrow eyebrow--plain">Sua curadoria</span>
+          {list.is_system && <span className="system-list-badge">Lista permanente</span>}
           <h1>{list.nome}</h1>
           <p>{list.descricao || "Uma coleção de histórias escolhidas por você."}</p>
           <span>{list.qtd_filmes} {list.qtd_filmes === 1 ? "filme" : "filmes"}</span>

@@ -12,6 +12,7 @@ import type {
   MovieUpdatePayload,
   ReviewCreatePayload,
   ReviewCreated,
+  SystemMovieList,
 } from "./types";
 
 const API_URL = (import.meta.env.VITE_API_URL ?? "/api/v1").replace(/\/$/, "");
@@ -179,6 +180,16 @@ export function addMovieToList(
 ): Promise<MovieListDetail> {
   return request<MovieListDetail>(
     `/movie-lists/${encodeURIComponent(listId)}/movies/${encodeURIComponent(movieId)}`,
+    { method: "POST" },
+  );
+}
+
+export function addMovieToSystemList(
+  systemList: SystemMovieList,
+  movieId: string,
+): Promise<MovieListDetail> {
+  return request<MovieListDetail>(
+    `/movie-lists/system/${systemList}/movies/${encodeURIComponent(movieId)}`,
     { method: "POST" },
   );
 }

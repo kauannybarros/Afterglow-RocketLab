@@ -105,6 +105,7 @@ export function MovieListsPage() {
                   <span className="list-card__icon"><ListIcon /></span>
                   <div>
                     <h3>{list.nome}</h3>
+                    {list.is_system && <span className="system-list-badge">Permanente</span>}
                     <p>{list.descricao || "Uma coleção pronta para receber novas histórias."}</p>
                   </div>
                   <footer>

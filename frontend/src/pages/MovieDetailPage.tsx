@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { deleteMovie, getMovie } from "../api";
+import { addMovieToSystemList, deleteMovie, getMovie } from "../api";
 import { Feedback } from "../components/Feedback";
 import {
   ArrowLeftIcon,
+  BookmarkIcon,
   CalendarIcon,
   CheckIcon,
   ClockIcon,
+  HeartIcon,
   ListIcon,
   PencilIcon,
   StarIcon,
@@ -26,7 +28,7 @@ import {
   initials,
   peopleByRole,
 } from "../format";
-import type { MovieDetail, ReviewCreated } from "../types";
+import type { MovieDetail, ReviewCreated, SystemMovieList } from "../types";
 
 export function MovieDetailPage() {
   const { movieId = "" } = useParams();
@@ -40,11 +42,20 @@ export function MovieDetailPage() {
   const [listOpen, setListOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [quickListBusy, setQuickListBusy] = useState<SystemMovieList | null>(null);
+  const [quickListsAdded, setQuickListsAdded] = useState<Set<SystemMovieList>>(new Set());
+  const [quickListFeedback, setQuickListFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
+    setQuickListBusy(null);
+    setQuickListsAdded(new Set());
+    setQuickListFeedback(null);
 
     getMovie(movieId, controller.signal)
       .then(setMovie)
@@ -158,6 +169,31 @@ export function MovieDetailPage() {
     }
   }
 
+  async function handleQuickList(systemList: SystemMovieList) {
+    if (!movie) return;
+
+    setQuickListBusy(systemList);
+    setQuickListFeedback(null);
+    try {
+      const updated = await addMovieToSystemList(systemList, movie.sk_movie_id);
+      setQuickListsAdded((current) => new Set(current).add(systemList));
+      setQuickListFeedback({
+        type: "success",
+        message: `Filme adicionado à lista “${updated.nome}”.`,
+      });
+    } catch (requestError: unknown) {
+      setQuickListFeedback({
+        type: "error",
+        message:
+          requestError instanceof Error
+            ? requestError.message
+            : "Não foi possível adicionar o filme à lista.",
+      });
+    } finally {
+      setQuickListBusy(null);
+    }
+  }
+
   return (
     <main className="movie-detail">
       <section
@@ -229,7 +265,33 @@ export function MovieDetailPage() {
 
               <div className="detail-actions">
                 <button
-                  className="button button--primary"
+                  className="button button--watch"
+                  disabled={Boolean(quickListBusy) || quickListsAdded.has("watchlist")}
+                  type="button"
+                  onClick={() => handleQuickList("watchlist")}
+                >
+                  {quickListsAdded.has("watchlist") ? <CheckIcon /> : <BookmarkIcon />}
+                  {quickListBusy === "watchlist"
+                    ? "Adicionando..."
+                    : quickListsAdded.has("watchlist")
+                      ? "Na WatchList"
+                      : "Quero assistir"}
+                </button>
+                <button
+                  className="button button--favorite"
+                  disabled={Boolean(quickListBusy) || quickListsAdded.has("favorites")}
+                  type="button"
+                  onClick={() => handleQuickList("favorites")}
+                >
+                  {quickListsAdded.has("favorites") ? <CheckIcon /> : <HeartIcon />}
+                  {quickListBusy === "favorites"
+                    ? "Adicionando..."
+                    : quickListsAdded.has("favorites")
+                      ? "Favoritado"
+                      : "Favorito"}
+                </button>
+                <button
+                  className="button button--secondary"
                   type="button"
                   onClick={() => setListOpen(true)}
                 >
@@ -249,6 +311,15 @@ export function MovieDetailPage() {
                   <TrashIcon /> Excluir filme
                 </button>
               </div>
+              {quickListFeedback && (
+                <div
+                  className={`quick-list-feedback quick-list-feedback--${quickListFeedback.type}`}
+                  role={quickListFeedback.type === "error" ? "alert" : "status"}
+                >
+                  {quickListFeedback.type === "success" && <CheckIcon />}
+                  {quickListFeedback.message}
+                </div>
+              )}
             </div>
           </div>
         </div>

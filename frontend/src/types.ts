@@ -115,6 +115,7 @@ export interface MovieCreatePayload {
 }
 
 export type MovieUpdatePayload = Omit<MovieCreatePayload, "id_filme">;
+export type SystemMovieList = "watchlist" | "favorites";
 
 export interface MovieListCreatePayload {
   nome: string;
@@ -126,6 +127,7 @@ export interface MovieListSummary {
   sk_movie_list_id: string;
   nome: string;
   descricao: string | null;
+  is_system: boolean;
   qtd_filmes: number;
   created_at: string;
 }

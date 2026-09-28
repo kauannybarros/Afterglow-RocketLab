@@ -193,6 +193,7 @@ export function MovieListDialog({
                     <span><ListIcon /></span>
                     <div>
                       <strong>{list.nome}</strong>
+                      {list.is_system && <em className="system-list-badge">Permanente</em>}
                       <small>
                         {list.qtd_filmes} {list.qtd_filmes === 1 ? "filme" : "filmes"}
                       </small>
