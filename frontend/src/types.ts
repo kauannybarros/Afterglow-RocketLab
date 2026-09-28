@@ -89,6 +89,12 @@ export interface MoviePage {
   pagination: PaginationMeta;
 }
 
+export interface MovieFilterOptions {
+  generos: string[];
+  anos: number[];
+  status: string[];
+}
+
 export interface MovieCreatePayload {
   titulo: string;
   id_filme: string | null;

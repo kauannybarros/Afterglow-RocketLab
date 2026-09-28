@@ -3,6 +3,7 @@ import type {
   ApiErrorPayload,
   MovieCreatePayload,
   MovieDetail,
+  MovieFilterOptions,
   MovieListCreatePayload,
   MovieListDetail,
   MovieListSummary,
@@ -68,6 +69,10 @@ interface GetMoviesParams {
   page: number;
   pageSize: number;
   search?: string;
+  genre?: string;
+  minRating?: number | null;
+  releaseYear?: number | null;
+  movieStatus?: string;
   signal?: AbortSignal;
 }
 
@@ -75,6 +80,10 @@ export function getMovies({
   page,
   pageSize,
   search,
+  genre,
+  minRating,
+  releaseYear,
+  movieStatus,
   signal,
 }: GetMoviesParams): Promise<MoviePage> {
   const params = new URLSearchParams({
@@ -85,8 +94,24 @@ export function getMovies({
   if (search?.trim()) {
     params.set("search", search.trim());
   }
+  if (genre?.trim()) {
+    params.set("genre", genre.trim());
+  }
+  if (minRating !== null && minRating !== undefined) {
+    params.set("min_rating", String(minRating));
+  }
+  if (releaseYear !== null && releaseYear !== undefined) {
+    params.set("release_year", String(releaseYear));
+  }
+  if (movieStatus?.trim()) {
+    params.set("movie_status", movieStatus.trim());
+  }
 
   return request<MoviePage>("/movies?" + params.toString(), { signal });
+}
+
+export function getMovieFilterOptions(signal?: AbortSignal): Promise<MovieFilterOptions> {
+  return request<MovieFilterOptions>("/movies/filters", { signal });
 }
 
 export function getMovie(
