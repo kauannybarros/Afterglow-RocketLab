@@ -21,7 +21,11 @@ personalizadas.
 ## Estrutura do projeto
 
 ```text
-rocketlab2026-2/
+Afterglow-RocketLab/
+├── bases-1/
+│   └── bases_atv_dev1/   # CSVs opcionais, não versionados
+├── bases-2/
+│   └── bases_atv_dev_2/  # CSVs opcionais, não versionados
 ├── backend/
 │   ├── app/
 │   │   ├── api/           # composição dos endpoints
@@ -46,7 +50,7 @@ rocketlab2026-2/
 ## Como executar
 
 Os comandos abaixo consideram que o terminal está inicialmente na raiz do
-repositório `rocketlab2026-2`.
+repositório `Afterglow-RocketLab`.
 
 ### 1. Configurar o backend
 
@@ -76,31 +80,29 @@ variáveis locais e cria ou atualiza o banco SQLite em
 ### 2. Importar os CSVs (opcional)
 
 O sistema funciona sem a importação e permite cadastrar filmes manualmente.
-Para carregar o catálogo fornecido, mantenha as bases como pastas irmãs do
-repositório:
+Os CSVs não são versionados no repositório. Caso queira carregar o catálogo
+fornecido para a atividade, coloque as pastas `bases-1` e `bases-2` diretamente
+dentro da raiz do projeto:
 
 ```text
-Pasta_Principal/
+Afterglow-RocketLab/
 ├── bases-1/bases_atv_dev1/
 ├── bases-2/bases_atv_dev_2/
-└── rocketlab2026-2/
+├── backend/
+└── frontend/
 ```
 
 Ainda dentro de `backend`, valide primeiro os arquivos sem alterar o banco:
 
 ```bash
 python -m app.db.import_csv \
-  --bases-1 ../../bases-1/bases_atv_dev1 \
-  --bases-2 ../../bases-2/bases_atv_dev_2 \
   --dry-run
 ```
 
 Depois, faça a importação:
 
 ```bash
-python -m app.db.import_csv \
-  --bases-1 ../../bases-1/bases_atv_dev1 \
-  --bases-2 ../../bases-2/bases_atv_dev_2
+python -m app.db.import_csv
 ```
 
 O importador pode ser executado novamente: registros existentes são
@@ -182,7 +184,9 @@ O importador:
 - verifica a integridade das chaves estrangeiras ao final.
 
 Use `--batch-size` para ajustar o tamanho dos lotes e `--database-url` para
-selecionar outro banco SQLite.
+selecionar outro banco SQLite. Os argumentos `--bases-1` e `--bases-2` podem
+ser usados para importar arquivos de outros diretórios; quando omitidos, o
+importador utiliza automaticamente as bases incluídas no repositório.
 
 ## Testes e verificações
 

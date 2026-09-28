@@ -5,7 +5,13 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.db.base import Base
-from app.db.import_csv import _reconcile_review_summaries, import_csv_data
+from app.db.import_csv import (
+    DEFAULT_BASES_1,
+    DEFAULT_BASES_2,
+    _parse_args,
+    _reconcile_review_summaries,
+    import_csv_data,
+)
 from app.movies.models import (
     DimCompany,
     DimGenre,
@@ -29,6 +35,13 @@ def _write_csv(
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def test_cli_uses_repository_bases_by_default() -> None:
+    args = _parse_args([])
+
+    assert args.bases_1 == DEFAULT_BASES_1
+    assert args.bases_2 == DEFAULT_BASES_2
 
 
 async def test_import_csv_data_is_complete_and_idempotent(tmp_path: Path) -> None:

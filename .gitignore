@@ -15,6 +15,10 @@ htmlcov/
 *.db-wal
 *.sqlite3
 
+# Bases CSV fornecidas separadamente
+bases-1/
+bases-2/
+
 # Sistema operacional e IDE
 .DS_Store
 .vscode/

@@ -33,6 +33,9 @@ from app.movies.models import (
 )
 
 Parser = Callable[[str], Any]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_BASES_1 = PROJECT_ROOT / "bases-1" / "bases_atv_dev1"
+DEFAULT_BASES_2 = PROJECT_ROOT / "bases-2" / "bases_atv_dev_2"
 
 
 class CsvImportError(Exception):
@@ -461,12 +464,22 @@ async def import_csv_data(
     return results
 
 
-def _parse_args() -> argparse.Namespace:
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Importa os CSVs fornecidos para o banco SQLite do RocketLab."
     )
-    parser.add_argument("--bases-1", type=Path, required=True)
-    parser.add_argument("--bases-2", type=Path, required=True)
+    parser.add_argument(
+        "--bases-1",
+        type=Path,
+        default=DEFAULT_BASES_1,
+        help=f"diretório da primeira base (padrão: {DEFAULT_BASES_1})",
+    )
+    parser.add_argument(
+        "--bases-2",
+        type=Path,
+        default=DEFAULT_BASES_2,
+        help=f"diretório da segunda base (padrão: {DEFAULT_BASES_2})",
+    )
     parser.add_argument("--database-url", default=get_settings().database_url)
     parser.add_argument("--batch-size", type=int, default=5_000)
     parser.add_argument(
@@ -474,7 +487,7 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="valida os arquivos sem gravar no banco",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 async def _run_from_cli(args: argparse.Namespace) -> None:
