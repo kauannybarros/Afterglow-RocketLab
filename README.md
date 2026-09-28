@@ -11,8 +11,10 @@ personalizadas.
 - pesquisa e filtros por gênero, nota mínima, ano e status;
 - cadastro, edição, visualização e exclusão de filmes;
 - avaliações com notas decimais de 0 a 10 e comentário opcional;
+- médias recalculadas a partir das notas individuais, limitadas ao máximo de 10;
 - listas permanentes WatchList e Favoritos, além de listas personalizadas;
 - ações rápidas para marcar um filme como favorito ou como “Quero assistir”;
+- renomeação e exclusão de listas personalizadas e remoção de filmes das listas;
 - importação idempotente dos arquivos CSV fornecidos;
 - interface responsiva com tema escuro.
 
@@ -67,7 +69,7 @@ Para carregar o catálogo fornecido, mantenha as bases como pastas irmãs do
 repositório:
 
 ```text
-Desafio_Dev/
+Pasta_Principal/
 ├── bases-1/bases_atv_dev1/
 ├── bases-2/bases_atv_dev_2/
 └── rocketlab2026-2/
