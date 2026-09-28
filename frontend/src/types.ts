@@ -78,9 +78,33 @@ export interface MoviePage {
   pagination: PaginationMeta;
 }
 
+export interface MovieCreatePayload {
+  titulo: string;
+  id_filme: string | null;
+  data_lancamento: string | null;
+  ano_lancamento: number | null;
+  duracao_minutos: number | null;
+  status_filme: string | null;
+  sinopse: string | null;
+  url_poster: string | null;
+  url_backdrop: string | null;
+  generos: string[];
+  diretores: string[];
+  elenco: string[];
+  roteiristas: string[];
+  produtoras: string[];
+}
+
+export interface ApiErrorDetail {
+  field?: string | null;
+  message: string;
+  type?: string | null;
+}
+
 export interface ApiErrorPayload {
   error?: {
     code?: string;
     message?: string;
+    details?: ApiErrorDetail[];
   };
 }

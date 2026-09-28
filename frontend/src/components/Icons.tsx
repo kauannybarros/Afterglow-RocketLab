@@ -92,3 +92,19 @@ export function SparklesIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function PlusIcon(props: IconProps) {
+  return (
+    <svg {...defaults} {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <svg {...defaults} {...props}>
+      <path d="m5 12 4 4L19 6" />
+    </svg>
+  );
+}

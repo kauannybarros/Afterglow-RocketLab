@@ -36,6 +36,14 @@ class MovieFields(ApiModel):
         Annotated[str, StringConstraints(strip_whitespace=True, max_length=2048)] | None
     ) = None
 
+    @model_validator(mode="after")
+    def derive_release_year(self) -> Self:
+        """Mantém a data completa como fonte oficial do ano de lançamento."""
+
+        if self.data_lancamento is not None:
+            self.ano_lancamento = self.data_lancamento.year
+        return self
+
 
 class MovieCreate(MovieFields):
     """Dados aceitos para cadastrar um filme."""
@@ -77,6 +85,9 @@ class MovieUpdate(ApiModel):
     def require_at_least_one_field(self) -> Self:
         if not self.model_fields_set:
             raise ValueError("informe ao menos um campo para atualizar")
+        if self.data_lancamento is not None:
+            self.ano_lancamento = self.data_lancamento.year
+            self.__pydantic_fields_set__.add("ano_lancamento")
         return self
 
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FilmIcon } from "./Icons";
 
 interface MoviePosterProps {
@@ -9,6 +9,8 @@ interface MoviePosterProps {
 
 export function MoviePoster({ src, title, className = "" }: MoviePosterProps) {
   const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [src]);
 
   if (!src || failed) {
     return (

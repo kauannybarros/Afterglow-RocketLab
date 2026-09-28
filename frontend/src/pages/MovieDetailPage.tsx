@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { getMovie } from "../api";
 import { Feedback } from "../components/Feedback";
 import {
   ArrowLeftIcon,
   CalendarIcon,
+  CheckIcon,
   ClockIcon,
   StarIcon,
   UsersIcon,
@@ -23,6 +24,7 @@ import type { MovieDetail } from "../types";
 
 export function MovieDetailPage() {
   const { movieId = "" } = useParams();
+  const location = useLocation();
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +89,9 @@ export function MovieDetailPage() {
   }
 
   const releaseDate = formatDate(movie.data_lancamento);
+  const movieCreated = Boolean(
+    (location.state as { movieCreated?: boolean } | null)?.movieCreated,
+  );
 
   return (
     <main className="movie-detail">
@@ -97,6 +102,15 @@ export function MovieDetailPage() {
         <div className="detail-hero__overlay" />
         <div className="container detail-hero__inner">
           <Link className="back-link" to="/"><ArrowLeftIcon /> Voltar ao catálogo</Link>
+          {movieCreated && (
+            <div className="success-banner" role="status">
+              <CheckIcon />
+              <div>
+                <strong>Filme cadastrado com sucesso</strong>
+                <span>Ele já está disponível no catálogo.</span>
+              </div>
+            </div>
+          )}
 
           <div className="detail-hero__grid">
             <div className="detail-poster">
