@@ -183,3 +183,9 @@ class PaginationMeta(ApiModel):
 class MoviePage(ApiModel):
     items: list[MovieSummary]
     pagination: PaginationMeta
+
+
+class MovieFilterOptions(ApiModel):
+    generos: list[str] = Field(default_factory=list)
+    anos: list[int] = Field(default_factory=list)
+    status: list[str] = Field(default_factory=list)

@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from app.movies.models import DimCompany, DimGenre, DimMovie, DimPerson, PersonType
+from app.movies.models import DimCompany, DimGenre, DimMovie, DimPerson, DimReview, PersonType
 
 
 class MovieRepository:
@@ -23,25 +23,67 @@ class MovieRepository:
         page: int,
         page_size: int,
         search: str | None,
+        genre: str | None,
+        min_rating: float | None,
+        release_year: int | None,
+        movie_status: str | None,
     ) -> tuple[list[DimMovie], int]:
         filters = []
         if search:
             filters.append(DimMovie.titulo.icontains(search, autoescape=True))
+        if genre:
+            filters.append(
+                DimMovie.genres.any(func.lower(DimGenre.nome_genero) == genre.lower())
+            )
+        if min_rating is not None:
+            filters.append(DimReview.nota_media_usuarios >= min_rating)
+        if release_year is not None:
+            filters.append(DimMovie.ano_lancamento == release_year)
+        if movie_status:
+            filters.append(func.lower(DimMovie.status_filme) == movie_status.lower())
 
-        total = await self.session.scalar(select(func.count(DimMovie.sk_movie_id)).where(*filters))
+        total = await self.session.scalar(
+            select(func.count(DimMovie.sk_movie_id))
+            .outerjoin(DimReview, DimReview.sk_movie_id == DimMovie.sk_movie_id)
+            .where(*filters)
+        )
         result = await self.session.execute(
             select(DimMovie)
+            .outerjoin(DimReview, DimReview.sk_movie_id == DimMovie.sk_movie_id)
             .where(*filters)
             .options(
                 selectinload(DimMovie.genres),
                 selectinload(DimMovie.reviews_summary),
             )
-            .order_by(func.lower(DimMovie.titulo), DimMovie.sk_movie_id)
+            .order_by(
+                DimReview.nota_media_usuarios.desc().nulls_last(),
+                DimReview.qtd_avaliacoes_usuarios.desc().nulls_last(),
+                func.lower(DimMovie.titulo),
+                DimMovie.sk_movie_id,
+            )
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
 
         return list(result.scalars()), total or 0
+
+    async def get_filter_options(self) -> tuple[list[str], list[int], list[str]]:
+        genres_result = await self.session.scalars(
+            select(DimGenre.nome_genero).order_by(func.lower(DimGenre.nome_genero))
+        )
+        years_result = await self.session.scalars(
+            select(DimMovie.ano_lancamento)
+            .where(DimMovie.ano_lancamento.is_not(None))
+            .distinct()
+            .order_by(DimMovie.ano_lancamento.desc())
+        )
+        statuses_result = await self.session.scalars(
+            select(DimMovie.status_filme)
+            .where(DimMovie.status_filme.is_not(None))
+            .distinct()
+            .order_by(func.lower(DimMovie.status_filme))
+        )
+        return list(genres_result), list(years_result), list(statuses_result)
 
     async def get_detail(self, sk_movie_id: str) -> DimMovie | None:
         result = await self.session.execute(

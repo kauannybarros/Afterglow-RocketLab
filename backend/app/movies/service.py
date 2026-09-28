@@ -14,6 +14,7 @@ from app.movies.schemas import (
     GenreRead,
     MovieCreate,
     MovieDetail,
+    MovieFilterOptions,
     MoviePage,
     MovieSummary,
     MovieUpdate,
@@ -110,12 +111,22 @@ class MovieService:
         page: int,
         page_size: int,
         search: str | None,
+        genre: str | None,
+        min_rating: float | None,
+        release_year: int | None,
+        movie_status: str | None,
     ) -> MoviePage:
         normalized_search = search.strip() if search else None
+        normalized_genre = genre.strip() if genre else None
+        normalized_status = movie_status.strip() if movie_status else None
         movies, total_items = await self.repository.list_page(
             page=page,
             page_size=page_size,
             search=normalized_search or None,
+            genre=normalized_genre or None,
+            min_rating=min_rating,
+            release_year=release_year,
+            movie_status=normalized_status or None,
         )
         total_pages = (total_items + page_size - 1) // page_size
 
@@ -128,6 +139,10 @@ class MovieService:
                 total_pages=total_pages,
             ),
         )
+
+    async def get_filter_options(self) -> MovieFilterOptions:
+        genres, years, statuses = await self.repository.get_filter_options()
+        return MovieFilterOptions(generos=genres, anos=years, status=statuses)
 
     async def get_detail(self, sk_movie_id: str) -> MovieDetail:
         movie = await self.repository.get_detail(sk_movie_id)
