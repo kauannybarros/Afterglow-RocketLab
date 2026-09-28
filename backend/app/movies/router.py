@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, Path, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.errors import ErrorResponse
@@ -76,6 +76,24 @@ async def update_movie(
     """Atualiza parcialmente um filme e seus relacionamentos."""
 
     return await MovieService(session).update(sk_movie_id, payload)
+
+
+@router.delete(
+    "/{sk_movie_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+    },
+)
+async def delete_movie(
+    sk_movie_id: Annotated[str, Path(min_length=1, max_length=64)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    """Remove um filme e os dados que pertencem exclusivamente a ele."""
+
+    await MovieService(session).delete(sk_movie_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post(

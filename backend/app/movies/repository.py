@@ -87,6 +87,11 @@ class MovieRepository:
         )
         return result.scalar_one_or_none()
 
+    async def delete(self, movie: DimMovie) -> None:
+        """Marca um filme e os dados dependentes para remoção."""
+
+        await self.session.delete(movie)
+
     async def get_or_create_genre(self, name: str) -> DimGenre:
         result = await self.session.execute(
             select(DimGenre).where(func.lower(DimGenre.nome_genero) == name.lower())

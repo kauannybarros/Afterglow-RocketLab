@@ -187,6 +187,21 @@ class MovieService:
 
         return response
 
+    async def delete(self, sk_movie_id: str) -> None:
+        """Remove um filme e seus dados dependentes de forma transacional."""
+
+        async with self.session.begin():
+            movie = await self.repository.get_for_update(sk_movie_id)
+            if movie is None:
+                raise DomainError(
+                    code="movie_not_found",
+                    message="Filme não encontrado.",
+                    status_code=404,
+                )
+
+            await self.repository.delete(movie)
+            await self.session.flush()
+
     async def create_review(
         self,
         sk_movie_id: str,
