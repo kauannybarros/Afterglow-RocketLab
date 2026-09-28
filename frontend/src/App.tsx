@@ -24,6 +24,7 @@ function Layout() {
       <Routes>
         <Route path="/" element={<CatalogPage />} />
         <Route path="/filmes/novo" element={<MovieCreatePage />} />
+        <Route path="/filmes/:movieId/editar" element={<MovieCreatePage mode="edit" />} />
         <Route path="/filmes/:movieId" element={<MovieDetailPage />} />
         <Route path="*" element={<CatalogPage />} />
       </Routes>

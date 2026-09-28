@@ -7,6 +7,7 @@ import {
   CalendarIcon,
   CheckIcon,
   ClockIcon,
+  PencilIcon,
   StarIcon,
   UsersIcon,
 } from "../components/Icons";
@@ -93,6 +94,9 @@ export function MovieDetailPage() {
   const movieCreated = Boolean(
     (location.state as { movieCreated?: boolean } | null)?.movieCreated,
   );
+  const movieUpdated = Boolean(
+    (location.state as { movieUpdated?: boolean } | null)?.movieUpdated,
+  );
 
   function handleReviewCreated(result: ReviewCreated) {
     setMovie((current) => {
@@ -114,12 +118,16 @@ export function MovieDetailPage() {
         <div className="detail-hero__overlay" />
         <div className="container detail-hero__inner">
           <Link className="back-link" to="/"><ArrowLeftIcon /> Voltar ao catálogo</Link>
-          {movieCreated && (
+          {(movieCreated || movieUpdated) && (
             <div className="success-banner" role="status">
               <CheckIcon />
               <div>
-                <strong>Filme cadastrado com sucesso</strong>
-                <span>Ele já está disponível no catálogo.</span>
+                <strong>
+                  {movieUpdated
+                    ? "Filme atualizado com sucesso"
+                    : "Filme cadastrado com sucesso"}
+                </strong>
+                <span>As informações já estão disponíveis no catálogo.</span>
               </div>
             </div>
           )}
@@ -169,6 +177,10 @@ export function MovieDetailPage() {
                   {roles.directors.map((person) => person.nome_pessoa).join(", ")}
                 </p>
               )}
+
+              <Link className="button button--secondary detail-edit-button" to="editar">
+                <PencilIcon /> Editar filme
+              </Link>
             </div>
           </div>
         </div>

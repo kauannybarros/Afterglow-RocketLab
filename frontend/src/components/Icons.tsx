@@ -108,3 +108,12 @@ export function CheckIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function PencilIcon(props: IconProps) {
+  return (
+    <svg {...defaults} {...props}>
+      <path d="m4 20 4.2-1 10.9-10.9a2.1 2.1 0 0 0-3-3L5.2 16Z" />
+      <path d="m14.8 6.4 2.8 2.8M4 20l1.2-4" />
+    </svg>
+  );
+}

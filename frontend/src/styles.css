@@ -765,6 +765,11 @@ svg { width: 1.25em; height: 1.25em; }
   text-transform: uppercase;
 }
 
+.detail-edit-button {
+  width: fit-content;
+  margin-top: 25px;
+}
+
 .detail-content { padding-top: 36px; padding-bottom: 95px; }
 .detail-section { padding-top: 48px; }
 .credits-grid, .metrics-grid { display: grid; gap: 16px; }
@@ -1193,6 +1198,11 @@ svg { width: 1.25em; height: 1.25em; }
 .field input::placeholder,
 .field textarea::placeholder { color: #626f8b; }
 
+.field input:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
@@ -1380,6 +1390,12 @@ svg { width: 1.25em; height: 1.25em; }
 
 .movie-preview__tip svg { flex: 0 0 auto; }
 .movie-preview__tip p { margin: 0; color: var(--muted); font-size: 0.7rem; line-height: 1.45; }
+
+.form-page-feedback {
+  min-height: 650px;
+  padding-top: 70px;
+  padding-bottom: 70px;
+}
 
 @media (max-width: 1050px) {
   .movie-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }

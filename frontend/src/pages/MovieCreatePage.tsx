@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ApiError, createMovie } from "../api";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ApiError, createMovie, getMovie, updateMovie } from "../api";
+import { Feedback } from "../components/Feedback";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -9,7 +10,16 @@ import {
   SparklesIcon,
 } from "../components/Icons";
 import { MoviePoster } from "../components/MoviePoster";
-import type { MovieCreatePayload } from "../types";
+import type {
+  MovieCreatePayload,
+  MovieDetail,
+  MovieUpdatePayload,
+  PersonRole,
+} from "../types";
+
+interface MovieCreatePageProps {
+  mode?: "create" | "edit";
+}
 
 interface FormValues {
   titulo: string;
@@ -133,14 +143,75 @@ function toPayload(values: FormValues, yearOnly: boolean): MovieCreatePayload {
   };
 }
 
-export function MovieCreatePage() {
+function peopleNames(movie: MovieDetail, role: PersonRole): string {
+  return movie.pessoas
+    .filter((person) => person.tipo_pessoa === role)
+    .map((person) => person.nome_pessoa)
+    .join(", ");
+}
+
+function valuesFromMovie(movie: MovieDetail): FormValues {
+  return {
+    titulo: movie.titulo,
+    id_filme: movie.id_filme,
+    data_lancamento: movie.data_lancamento ?? "",
+    ano_lancamento: movie.ano_lancamento?.toString() ?? "",
+    duracao_minutos:
+      movie.duracao_minutos && movie.duracao_minutos > 0
+        ? movie.duracao_minutos.toString()
+        : "",
+    status_filme: movie.status_filme ?? "",
+    sinopse: movie.sinopse ?? "",
+    url_poster: movie.url_poster ?? "",
+    url_backdrop: movie.url_backdrop ?? "",
+    generos: movie.generos.map((genre) => genre.nome_genero).join(", "),
+    diretores: peopleNames(movie, "Diretor"),
+    elenco: peopleNames(movie, "Ator"),
+    roteiristas: peopleNames(movie, "Roteirista"),
+    produtoras: movie.produtoras.map((company) => company.nome_produtora).join(", "),
+  };
+}
+
+export function MovieCreatePage({ mode = "create" }: MovieCreatePageProps) {
   const navigate = useNavigate();
+  const { movieId = "" } = useParams();
+  const editing = mode === "edit";
   const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
   const [errors, setErrors] = useState<FormErrors>({});
   const [requestError, setRequestError] = useState<string | null>(null);
   const [requestDetails, setRequestDetails] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [yearOnly, setYearOnly] = useState(false);
+  const [loadingMovie, setLoadingMovie] = useState(editing);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    if (!editing) return;
+
+    const controller = new AbortController();
+    setLoadingMovie(true);
+    setLoadError(null);
+
+    getMovie(movieId, controller.signal)
+      .then((movie) => {
+        setValues(valuesFromMovie(movie));
+        setYearOnly(!movie.data_lancamento && movie.ano_lancamento !== null);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar o filme para edição.",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingMovie(false);
+      });
+
+    return () => controller.abort();
+  }, [editing, movieId, reloadKey]);
 
   const previewGenres = useMemo(() => names(values.generos).slice(0, 3), [values.generos]);
   const releaseYear = yearOnly
@@ -198,10 +269,20 @@ export function MovieCreatePage() {
     setRequestDetails([]);
 
     try {
-      const movie = await createMovie(toPayload(values, yearOnly));
+      const payload = toPayload(values, yearOnly);
+      let movie: MovieDetail;
+
+      if (editing) {
+        const updatePayload = Object.fromEntries(
+          Object.entries(payload).filter(([field]) => field !== "id_filme"),
+        ) as MovieUpdatePayload;
+        movie = await updateMovie(movieId, updatePayload);
+      } else {
+        movie = await createMovie(payload);
+      }
       navigate("/filmes/" + movie.sk_movie_id, {
         replace: true,
-        state: { movieCreated: true },
+        state: editing ? { movieUpdated: true } : { movieCreated: true },
       });
     } catch (error) {
       if (error instanceof ApiError) {
@@ -214,7 +295,11 @@ export function MovieCreatePage() {
           }),
         );
       } else {
-        setRequestError("Não foi possível cadastrar o filme.");
+        setRequestError(
+          editing
+            ? "Não foi possível atualizar o filme."
+            : "Não foi possível cadastrar o filme.",
+        );
       }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
@@ -222,16 +307,50 @@ export function MovieCreatePage() {
     }
   }
 
+  const returnPath = editing ? "/filmes/" + movieId : "/";
+
+  if (editing && loadingMovie) {
+    return (
+      <main className="container form-page-feedback">
+        <Feedback
+          title="Preparando a edição"
+          message="Estamos carregando as informações atuais do filme."
+        />
+      </main>
+    );
+  }
+
+  if (editing && loadError) {
+    return (
+      <main className="container form-page-feedback">
+        <Feedback
+          title="Não foi possível editar este filme"
+          message={loadError}
+          action={{ label: "Tentar novamente", onClick: () => setReloadKey((key) => key + 1) }}
+        />
+        <Link className="back-link back-link--center" to="/">Voltar ao catálogo</Link>
+      </main>
+    );
+  }
+
   return (
     <main className="create-page">
       <section className="create-hero">
         <div className="container">
-          <Link className="back-link" to="/"><ArrowLeftIcon /> Voltar ao catálogo</Link>
-          <span className="eyebrow"><SparklesIcon /> Novo no catálogo</span>
-          <h1>Cadastre uma nova <em>história.</em></h1>
+          <Link className="back-link" to={returnPath}>
+            <ArrowLeftIcon /> {editing ? "Voltar aos detalhes" : "Voltar ao catálogo"}
+          </Link>
+          <span className="eyebrow">
+            <SparklesIcon /> {editing ? "Atualize a história" : "Novo no catálogo"}
+          </span>
+          <h1>
+            {editing ? "Edite as informações desta " : "Cadastre uma nova "}
+            <em>história.</em>
+          </h1>
           <p>
-            Comece pelo essencial. Você poderá complementar os dados opcionais
-            para deixar a página do filme mais rica.
+            {editing
+              ? "Revise os dados atuais e salve somente as mudanças necessárias."
+              : "Comece pelo essencial. Você poderá complementar os dados opcionais para deixar a página do filme mais rica."}
           </p>
         </div>
       </section>
@@ -277,12 +396,18 @@ export function MovieCreatePage() {
               <label className="field">
                 <span>Identificador externo</span>
                 <input
+                  disabled={editing}
                   maxLength={50}
                   name="id_filme"
                   onChange={updateField}
                   placeholder="(Opcional) - Será gerado automaticamente"
                   value={values.id_filme}
                 />
+                {editing && (
+                  <small className="field__hint">
+                    O identificador externo não pode ser alterado.
+                  </small>
+                )}
               </label>
 
               <label className="field">
@@ -478,12 +603,15 @@ export function MovieCreatePage() {
           </fieldset>
 
           <div className="form-actions">
-            <Link className="button button--secondary" to="/">Cancelar</Link>
+            <Link className="button button--secondary" to={returnPath}>Cancelar</Link>
             <button className="button button--primary" disabled={submitting} type="submit">
               {submitting ? (
-                <><span className="button__spinner" /> Cadastrando...</>
+                <>
+                  <span className="button__spinner" />
+                  {editing ? "Salvando..." : "Cadastrando..."}
+                </>
               ) : (
-                <> Cadastrar filme <ArrowRightIcon /></>
+                <>{editing ? "Salvar alterações" : "Cadastrar filme"} <ArrowRightIcon /></>
               )}
             </button>
           </div>

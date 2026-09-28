@@ -106,6 +106,8 @@ export interface MovieCreatePayload {
   produtoras: string[];
 }
 
+export type MovieUpdatePayload = Omit<MovieCreatePayload, "id_filme">;
+
 export interface ApiErrorDetail {
   field?: string | null;
   message: string;

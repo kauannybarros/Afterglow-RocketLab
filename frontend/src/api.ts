@@ -4,6 +4,7 @@ import type {
   MovieCreatePayload,
   MovieDetail,
   MoviePage,
+  MovieUpdatePayload,
   ReviewCreatePayload,
   ReviewCreated,
 } from "./types";
@@ -91,6 +92,16 @@ export function getMovie(
 export function createMovie(payload: MovieCreatePayload): Promise<MovieDetail> {
   return request<MovieDetail>("/movies", {
     method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateMovie(
+  movieId: string,
+  payload: MovieUpdatePayload,
+): Promise<MovieDetail> {
+  return request<MovieDetail>("/movies/" + encodeURIComponent(movieId), {
+    method: "PATCH",
     body: JSON.stringify(payload),
   });
 }
