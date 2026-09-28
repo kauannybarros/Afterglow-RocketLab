@@ -18,3 +18,8 @@ htmlcov/
 # Sistema operacional e IDE
 .DS_Store
 .vscode/
+
+# Node / frontend
+node_modules/
+dist/
+*.tsbuildinfo

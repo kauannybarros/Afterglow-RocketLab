@@ -1,0 +1,86 @@
+export interface Genre {
+  sk_genre_id: string;
+  nome_genero: string;
+}
+
+export interface Company {
+  sk_company_id: string;
+  nome_produtora: string;
+}
+
+export type PersonRole = "Ator" | "Diretor" | "Roteirista";
+
+export interface Person {
+  sk_person_id: string;
+  nome_pessoa: string;
+  tipo_pessoa: PersonRole;
+}
+
+export interface ReviewSummary {
+  qtd_avaliacoes: number;
+  nota_media: number | null;
+}
+
+export interface Performance {
+  orcamento_usd: string | number | null;
+  receita_usd: string | number | null;
+  lucro_usd: string | number;
+  orcamento_brl: string | number | null;
+  receita_brl: string | number | null;
+  lucro_brl: string | number;
+  popularidade: number | null;
+  nota_tmdb: number | null;
+  qtd_tmdb: number | null;
+  nota_imdb: number | null;
+  qtd_imdb: number | null;
+}
+
+export interface Review {
+  sk_movie_review_id: string;
+  sk_movie_id: string;
+  nome: string;
+  nota: number;
+  comentario: string;
+  created_at: string;
+}
+
+export interface MovieSummary {
+  sk_movie_id: string;
+  id_filme: string;
+  titulo: string;
+  ano_lancamento: number | null;
+  url_poster: string | null;
+  generos: Genre[];
+  avaliacoes: ReviewSummary;
+}
+
+export interface MovieDetail extends MovieSummary {
+  data_lancamento: string | null;
+  duracao_minutos: number | null;
+  status_filme: string | null;
+  sinopse: string | null;
+  url_backdrop: string | null;
+  produtoras: Company[];
+  pessoas: Person[];
+  desempenho: Performance | null;
+  reviews: Review[];
+}
+
+export interface PaginationMeta {
+  page: number;
+  page_size: number;
+  total_items: number;
+  total_pages: number;
+}
+
+export interface MoviePage {
+  items: MovieSummary[];
+  pagination: PaginationMeta;
+}
+
+export interface ApiErrorPayload {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+}
