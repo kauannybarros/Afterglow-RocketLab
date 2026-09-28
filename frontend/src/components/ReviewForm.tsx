@@ -132,14 +132,11 @@ export function ReviewForm({ movieId, onCreated }: ReviewFormProps) {
                 setErrors((current) => ({ ...current, nota: undefined }));
                 clearFeedback();
               }}
-              placeholder="8,5"
+              placeholder="Ex: 8,5"
               value={score}
             />
             <span>/ 10</span>
           </div>
-          <small className="score-field__hint" id="score-hint">
-            Você pode usar vírgula ou ponto. Exemplo: 8,5.
-          </small>
           {errors.nota && <small className="field__error">{errors.nota}</small>}
         </fieldset>
 
