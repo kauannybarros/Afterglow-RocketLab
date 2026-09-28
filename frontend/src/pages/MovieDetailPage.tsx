@@ -12,6 +12,7 @@ import {
 } from "../components/Icons";
 import { MoviePoster } from "../components/MoviePoster";
 import { Rating } from "../components/Rating";
+import { ReviewForm } from "../components/ReviewForm";
 import {
   formatCount,
   formatCurrency,
@@ -20,7 +21,7 @@ import {
   initials,
   peopleByRole,
 } from "../format";
-import type { MovieDetail } from "../types";
+import type { MovieDetail, ReviewCreated } from "../types";
 
 export function MovieDetailPage() {
   const { movieId = "" } = useParams();
@@ -92,6 +93,17 @@ export function MovieDetailPage() {
   const movieCreated = Boolean(
     (location.state as { movieCreated?: boolean } | null)?.movieCreated,
   );
+
+  function handleReviewCreated(result: ReviewCreated) {
+    setMovie((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        avaliacoes: result.avaliacoes,
+        reviews: [...current.reviews, result.review],
+      };
+    });
+  }
 
   return (
     <main className="movie-detail">
@@ -238,13 +250,15 @@ export function MovieDetailPage() {
           </section>
         )}
 
-        <section className="detail-section reviews-section">
+        <section className="detail-section reviews-section" id="avaliacoes">
           <div className="section-heading section-heading--compact">
             <div>
               <span className="eyebrow eyebrow--plain">Comunidade</span>
               <h2>Resenhas <span>{movie.reviews.length}</span></h2>
             </div>
           </div>
+
+          <ReviewForm movieId={movie.sk_movie_id} onCreated={handleReviewCreated} />
 
           {movie.reviews.length ? (
             <div className="reviews-list">

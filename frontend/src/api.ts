@@ -4,6 +4,8 @@ import type {
   MovieCreatePayload,
   MovieDetail,
   MoviePage,
+  ReviewCreatePayload,
+  ReviewCreated,
 } from "./types";
 
 const API_URL = (import.meta.env.VITE_API_URL ?? "/api/v1").replace(/\/$/, "");
@@ -91,4 +93,17 @@ export function createMovie(payload: MovieCreatePayload): Promise<MovieDetail> {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export function createReview(
+  movieId: string,
+  payload: ReviewCreatePayload,
+): Promise<ReviewCreated> {
+  return request<ReviewCreated>(
+    "/movies/" + encodeURIComponent(movieId) + "/reviews",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }

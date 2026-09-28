@@ -44,6 +44,17 @@ export interface Review {
   created_at: string;
 }
 
+export interface ReviewCreatePayload {
+  nome: string;
+  nota: number;
+  comentario: string;
+}
+
+export interface ReviewCreated {
+  review: Review;
+  avaliacoes: ReviewSummary;
+}
+
 export interface MovieSummary {
   sk_movie_id: string;
   id_filme: string;
