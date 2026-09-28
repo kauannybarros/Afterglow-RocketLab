@@ -977,37 +977,50 @@ svg { width: 1.25em; height: 1.25em; }
 
 .score-field legend b { color: var(--pink-soft); }
 
-.score-picker {
-  display: grid;
-  grid-template-columns: repeat(11, minmax(32px, 1fr));
-  gap: 5px;
-}
-
-.score-picker button {
-  min-width: 0;
-  min-height: 47px;
+.score-input {
+  display: flex;
+  min-height: 48px;
+  padding: 0 14px;
+  align-items: center;
+  gap: 10px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: rgba(11, 15, 28, 0.58);
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 0.76rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.score-input:focus-within {
+  border-color: rgba(255, 79, 163, 0.58);
+  box-shadow: 0 0 0 3px rgba(255, 79, 163, 0.09);
+}
+
+.score-input > svg { color: var(--pink); }
+
+.score-input input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
   font-weight: 700;
-  transition: border-color 150ms ease, background 150ms ease, color 150ms ease,
-    transform 150ms ease;
 }
 
-.score-picker button:hover {
-  border-color: rgba(61, 228, 245, 0.42);
-  color: var(--cyan-soft);
-  transform: translateY(-2px);
+.score-input input::placeholder { color: #66738e; }
+
+.score-input > span {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
-.score-picker button.is-selected {
-  border-color: rgba(255, 79, 163, 0.6);
-  background: linear-gradient(145deg, rgba(255, 79, 163, 0.3), rgba(172, 90, 231, 0.22));
-  color: white;
-  box-shadow: 0 7px 16px rgba(255, 79, 163, 0.13);
+.score-field__hint {
+  display: block;
+  margin-top: 7px;
+  color: #74809b;
+  font-size: 0.7rem;
 }
 
 .score-field .field__error { display: block; margin-top: 8px; }
@@ -1560,8 +1573,6 @@ svg { width: 1.25em; height: 1.25em; }
   .review-form { padding: 20px 17px; }
   .review-form__heading { align-items: start; }
   .review-form__heading p { line-height: 1.5; }
-  .score-picker { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .score-picker button { min-height: 42px; }
   .review-form__actions { align-items: stretch; flex-direction: column; }
   .review-form__actions .button { width: 100%; }
   .site-footer__inner { padding: 34px 0; align-items: start; flex-direction: column; gap: 12px; }

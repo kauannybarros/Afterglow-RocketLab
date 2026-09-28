@@ -15,11 +15,17 @@ interface ReviewErrors {
   comentario?: string;
 }
 
-const SCORES = Array.from({ length: 11 }, (_, score) => score);
+function parseScore(value: string): number | null {
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized) return null;
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 export function ReviewForm({ movieId, onCreated }: ReviewFormProps) {
   const [name, setName] = useState("");
-  const [score, setScore] = useState<number | null>(null);
+  const [score, setScore] = useState("");
   const [comment, setComment] = useState("");
   const [errors, setErrors] = useState<ReviewErrors>({});
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -34,16 +40,21 @@ export function ReviewForm({ movieId, onCreated }: ReviewFormProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors: ReviewErrors = {};
+    const parsedScore = parseScore(score);
 
     if (!name.trim()) nextErrors.nome = "Informe seu nome.";
-    if (score === null) nextErrors.nota = "Escolha uma nota de 0 a 10.";
+    if (!score.trim()) {
+      nextErrors.nota = "Informe uma nota de 0 a 10.";
+    } else if (parsedScore === null || parsedScore < 0 || parsedScore > 10) {
+      nextErrors.nota = "Use um número entre 0 e 10.";
+    }
     if (!comment.trim()) nextErrors.comentario = "Escreva um comentário.";
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
     }
-    if (score === null) return;
+    if (parsedScore === null || parsedScore < 0 || parsedScore > 10) return;
 
     setSubmitting(true);
     setRequestError(null);
@@ -52,12 +63,12 @@ export function ReviewForm({ movieId, onCreated }: ReviewFormProps) {
     try {
       const result = await createReview(movieId, {
         nome: name.trim(),
-        nota: score,
+        nota: parsedScore,
         comentario: comment.trim(),
       });
       onCreated(result);
       setName("");
-      setScore(null);
+      setScore("");
       setComment("");
       setErrors({});
       setSuccess(true);
@@ -108,24 +119,27 @@ export function ReviewForm({ movieId, onCreated }: ReviewFormProps) {
 
         <fieldset className="score-field">
           <legend>Sua nota <b aria-hidden="true">*</b></legend>
-          <div className="score-picker">
-            {SCORES.map((item) => (
-              <button
-                aria-label={"Nota " + item}
-                aria-pressed={score === item}
-                className={score === item ? "is-selected" : ""}
-                key={item}
-                onClick={() => {
-                  setScore(item);
-                  setErrors((current) => ({ ...current, nota: undefined }));
-                  clearFeedback();
-                }}
-                type="button"
-              >
-                {item}
-              </button>
-            ))}
+          <div className="score-input">
+            <StarIcon />
+            <input
+              aria-describedby="score-hint"
+              aria-invalid={Boolean(errors.nota)}
+              autoComplete="off"
+              inputMode="decimal"
+              maxLength={12}
+              onChange={(event) => {
+                setScore(event.target.value);
+                setErrors((current) => ({ ...current, nota: undefined }));
+                clearFeedback();
+              }}
+              placeholder="8,5"
+              value={score}
+            />
+            <span>/ 10</span>
           </div>
+          <small className="score-field__hint" id="score-hint">
+            Você pode usar vírgula ou ponto. Exemplo: 8,5.
+          </small>
           {errors.nota && <small className="field__error">{errors.nota}</small>}
         </fieldset>
 
