@@ -123,6 +123,15 @@ export interface MovieListCreatePayload {
   sk_movie_id?: string | null;
 }
 
+export interface MovieListUpdatePayload {
+  nome: string;
+}
+
+export interface MovieListMembership {
+  watchlist: boolean;
+  favorites: boolean;
+}
+
 export interface MovieListSummary {
   sk_movie_list_id: string;
   nome: string;

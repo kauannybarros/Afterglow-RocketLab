@@ -6,7 +6,9 @@ import type {
   MovieFilterOptions,
   MovieListCreatePayload,
   MovieListDetail,
+  MovieListMembership,
   MovieListSummary,
+  MovieListUpdatePayload,
   MoviePage,
   MovieSort,
   MovieUpdatePayload,
@@ -165,12 +167,38 @@ export function getMovieList(
   );
 }
 
+export function getMovieListMemberships(
+  movieId: string,
+  signal?: AbortSignal,
+): Promise<MovieListMembership> {
+  return request<MovieListMembership>(
+    "/movie-lists/memberships/" + encodeURIComponent(movieId),
+    { signal },
+  );
+}
+
 export function createMovieList(
   payload: MovieListCreatePayload,
 ): Promise<MovieListDetail> {
   return request<MovieListDetail>("/movie-lists", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function updateMovieList(
+  listId: string,
+  payload: MovieListUpdatePayload,
+): Promise<MovieListDetail> {
+  return request<MovieListDetail>("/movie-lists/" + encodeURIComponent(listId), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteMovieList(listId: string): Promise<void> {
+  return request<void>("/movie-lists/" + encodeURIComponent(listId), {
+    method: "DELETE",
   });
 }
 
@@ -181,6 +209,16 @@ export function addMovieToList(
   return request<MovieListDetail>(
     `/movie-lists/${encodeURIComponent(listId)}/movies/${encodeURIComponent(movieId)}`,
     { method: "POST" },
+  );
+}
+
+export function removeMovieFromList(
+  listId: string,
+  movieId: string,
+): Promise<MovieListDetail> {
+  return request<MovieListDetail>(
+    `/movie-lists/${encodeURIComponent(listId)}/movies/${encodeURIComponent(movieId)}`,
+    { method: "DELETE" },
   );
 }
 

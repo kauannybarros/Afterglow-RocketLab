@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { addMovieToSystemList, deleteMovie, getMovie } from "../api";
+import {
+  addMovieToSystemList,
+  deleteMovie,
+  getMovie,
+  getMovieListMemberships,
+} from "../api";
 import { Feedback } from "../components/Feedback";
 import {
   ArrowLeftIcon,
@@ -57,8 +62,17 @@ export function MovieDetailPage() {
     setQuickListsAdded(new Set());
     setQuickListFeedback(null);
 
-    getMovie(movieId, controller.signal)
-      .then(setMovie)
+    Promise.all([
+      getMovie(movieId, controller.signal),
+      getMovieListMemberships(movieId, controller.signal),
+    ])
+      .then(([movieResult, memberships]) => {
+        setMovie(movieResult);
+        const activeLists = new Set<SystemMovieList>();
+        if (memberships.watchlist) activeLists.add("watchlist");
+        if (memberships.favorites) activeLists.add("favorites");
+        setQuickListsAdded(activeLists);
+      })
       .catch((requestError: unknown) => {
         if (requestError instanceof DOMException && requestError.name === "AbortError") return;
         setError(
@@ -270,7 +284,9 @@ export function MovieDetailPage() {
                   type="button"
                   onClick={() => handleQuickList("watchlist")}
                 >
-                  {quickListsAdded.has("watchlist") ? <CheckIcon /> : <BookmarkIcon />}
+                  {quickListsAdded.has("watchlist")
+                    ? <BookmarkIcon fill="currentColor" />
+                    : <BookmarkIcon />}
                   {quickListBusy === "watchlist"
                     ? "Adicionando..."
                     : quickListsAdded.has("watchlist")
@@ -283,7 +299,9 @@ export function MovieDetailPage() {
                   type="button"
                   onClick={() => handleQuickList("favorites")}
                 >
-                  {quickListsAdded.has("favorites") ? <CheckIcon /> : <HeartIcon />}
+                  {quickListsAdded.has("favorites")
+                    ? <HeartIcon fill="currentColor" />
+                    : <HeartIcon />}
                   {quickListBusy === "favorites"
                     ? "Adicionando..."
                     : quickListsAdded.has("favorites")
