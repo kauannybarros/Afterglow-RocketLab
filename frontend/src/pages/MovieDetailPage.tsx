@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
-import { getMovie } from "../api";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { deleteMovie, getMovie } from "../api";
 import { Feedback } from "../components/Feedback";
 import {
   ArrowLeftIcon,
@@ -9,6 +9,7 @@ import {
   ClockIcon,
   PencilIcon,
   StarIcon,
+  TrashIcon,
   UsersIcon,
 } from "../components/Icons";
 import { MoviePoster } from "../components/MoviePoster";
@@ -27,10 +28,14 @@ import type { MovieDetail, ReviewCreated } from "../types";
 export function MovieDetailPage() {
   const { movieId = "" } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -53,6 +58,38 @@ export function MovieDetailPage() {
 
     return () => controller.abort();
   }, [movieId, reloadKey]);
+
+  useEffect(() => {
+    if (!deleteOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !deleting) setDeleteOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [deleteOpen, deleting]);
+
+  useEffect(() => {
+    if (!deleteOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !deleting) setDeleteOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [deleteOpen, deleting]);
 
   const roles = useMemo(() => {
     if (!movie) return null;
@@ -107,6 +144,27 @@ export function MovieDetailPage() {
         reviews: [...current.reviews, result.review],
       };
     });
+  }
+
+  async function handleDelete() {
+    if (!movie) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteMovie(movie.sk_movie_id);
+      navigate("/", {
+        replace: true,
+        state: { movieDeleted: true, movieTitle: movie.titulo },
+      });
+    } catch (requestError: unknown) {
+      setDeleteError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Não foi possível excluir o filme.",
+      );
+      setDeleting(false);
+    }
   }
 
   return (
@@ -178,9 +236,21 @@ export function MovieDetailPage() {
                 </p>
               )}
 
-              <Link className="button button--secondary detail-edit-button" to="editar">
-                <PencilIcon /> Editar filme
-              </Link>
+              <div className="detail-actions">
+                <Link className="button button--secondary" to="editar">
+                  <PencilIcon /> Editar filme
+                </Link>
+                <button
+                  className="button button--danger"
+                  type="button"
+                  onClick={() => {
+                    setDeleteError(null);
+                    setDeleteOpen(true);
+                  }}
+                >
+                  <TrashIcon /> Excluir filme
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -299,6 +369,45 @@ export function MovieDetailPage() {
           )}
         </section>
       </div>
+
+      {deleteOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-movie-title"
+            aria-describedby="delete-movie-description"
+          >
+            <span className="confirm-dialog__icon"><TrashIcon /></span>
+            <span className="eyebrow eyebrow--plain">Ação permanente</span>
+            <h2 id="delete-movie-title">Excluir “{movie.titulo}”?</h2>
+            <p id="delete-movie-description">
+              O filme, suas avaliações e seus dados de desempenho serão removidos do catálogo.
+              Esta ação não pode ser desfeita.
+            </p>
+            {deleteError && <p className="confirm-dialog__error" role="alert">{deleteError}</p>}
+            <div className="confirm-dialog__actions">
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleting}
+              >
+                Cancelar
+              </button>
+              <button
+                className="button button--danger"
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                <TrashIcon /> {deleting ? "Excluindo..." : "Excluir definitivamente"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

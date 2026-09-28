@@ -54,6 +54,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     );
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return response.json() as Promise<T>;
 }
 
@@ -103,6 +107,12 @@ export function updateMovie(
   return request<MovieDetail>("/movies/" + encodeURIComponent(movieId), {
     method: "PATCH",
     body: JSON.stringify(payload),
+  });
+}
+
+export function deleteMovie(movieId: string): Promise<void> {
+  return request<void>("/movies/" + encodeURIComponent(movieId), {
+    method: "DELETE",
   });
 }
 

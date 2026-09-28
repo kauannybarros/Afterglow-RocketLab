@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { getMovies } from "../api";
 import { Feedback, MovieGridSkeleton } from "../components/Feedback";
-import { SearchIcon, SparklesIcon } from "../components/Icons";
+import { CheckIcon, SearchIcon, SparklesIcon } from "../components/Icons";
 import { MovieCard } from "../components/MovieCard";
 import { Pagination } from "../components/Pagination";
 import { formatCount } from "../format";
@@ -12,6 +12,7 @@ import type { MoviePage } from "../types";
 const PAGE_SIZE = 20;
 
 export function CatalogPage() {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("busca") ?? "";
   const pageParam = Number(searchParams.get("pagina") ?? "1");
@@ -22,6 +23,10 @@ export function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const deletionState = location.state as {
+    movieDeleted?: boolean;
+    movieTitle?: string;
+  } | null;
 
   useEffect(() => setDraft(query), [query]);
 
@@ -116,6 +121,19 @@ export function CatalogPage() {
       </section>
 
       <main className="container catalog-content">
+        {deletionState?.movieDeleted && (
+          <div className="success-banner catalog-success" role="status">
+            <CheckIcon />
+            <div>
+              <strong>Filme excluído com sucesso</strong>
+              <span>
+                {deletionState.movieTitle
+                  ? `“${deletionState.movieTitle}” foi removido do catálogo.`
+                  : "O filme foi removido do catálogo."}
+              </span>
+            </div>
+          </div>
+        )}
         <div className="section-heading">
           <div>
             <span className="eyebrow eyebrow--plain">
