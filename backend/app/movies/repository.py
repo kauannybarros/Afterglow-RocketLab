@@ -69,6 +69,24 @@ class MovieRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_for_update(self, sk_movie_id: str) -> DimMovie | None:
+        """Carrega o agregado completo e bloqueia o filme durante a edição."""
+
+        result = await self.session.execute(
+            select(DimMovie)
+            .where(DimMovie.sk_movie_id == sk_movie_id)
+            .options(
+                selectinload(DimMovie.genres),
+                selectinload(DimMovie.companies),
+                selectinload(DimMovie.people),
+                selectinload(DimMovie.reviews),
+                joinedload(DimMovie.performance),
+                joinedload(DimMovie.reviews_summary),
+            )
+            .with_for_update()
+        )
+        return result.scalar_one_or_none()
+
     async def get_or_create_genre(self, name: str) -> DimGenre:
         result = await self.session.execute(
             select(DimGenre).where(func.lower(DimGenre.nome_genero) == name.lower())

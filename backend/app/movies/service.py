@@ -16,6 +16,7 @@ from app.movies.schemas import (
     MovieDetail,
     MoviePage,
     MovieSummary,
+    MovieUpdate,
     PaginationMeta,
     PerformanceRead,
     PersonRead,
@@ -138,6 +139,54 @@ class MovieService:
             )
         return self._to_detail(movie)
 
+    async def update(
+        self,
+        sk_movie_id: str,
+        payload: MovieUpdate,
+    ) -> MovieDetail:
+        """Atualiza campos e relacionamentos explicitamente enviados."""
+
+        try:
+            async with self.session.begin():
+                movie = await self.repository.get_for_update(sk_movie_id)
+                if movie is None:
+                    raise DomainError(
+                        code="movie_not_found",
+                        message="Filme não encontrado.",
+                        status_code=404,
+                    )
+
+                scalar_fields = payload.model_dump(
+                    include=MOVIE_FIELDS,
+                    exclude_unset=True,
+                )
+                for field, value in scalar_fields.items():
+                    setattr(movie, field, value)
+
+                with self.session.no_autoflush:
+                    if payload.generos is not None:
+                        movie.genres = [
+                            await self.repository.get_or_create_genre(name)
+                            for name in _unique_names(payload.generos)
+                        ]
+                    if payload.produtoras is not None:
+                        movie.companies = [
+                            await self.repository.get_or_create_company(name)
+                            for name in _unique_names(payload.produtoras)
+                        ]
+                    await self._update_people(movie, payload)
+
+                await self.session.flush()
+                response = self._to_detail(movie)
+        except IntegrityError as exc:
+            raise DomainError(
+                code="movie_update_conflict",
+                message="Não foi possível atualizar o filme devido a dados duplicados.",
+                status_code=409,
+            ) from exc
+
+        return response
+
     async def create_review(
         self,
         sk_movie_id: str,
@@ -228,6 +277,27 @@ class MovieService:
             )
 
         return people
+
+    async def _update_people(self, movie: DimMovie, payload: MovieUpdate) -> None:
+        role_updates: tuple[tuple[list[str] | None, PersonType], ...] = (
+            (payload.diretores, "Diretor"),
+            (payload.elenco, "Ator"),
+            (payload.roteiristas, "Roteirista"),
+        )
+        people = list(movie.people)
+
+        for names, person_type in role_updates:
+            if names is None:
+                continue
+            people = [person for person in people if person.tipo_pessoa != person_type]
+            people.extend(
+                [
+                    await self.repository.get_or_create_person(name, person_type)
+                    for name in _unique_names(names)
+                ]
+            )
+
+        movie.people = people
 
     @staticmethod
     def _to_detail(movie: DimMovie) -> MovieDetail:

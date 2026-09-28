@@ -11,6 +11,7 @@ from app.movies.schemas import (
     MovieCreate,
     MovieDetail,
     MoviePage,
+    MovieUpdate,
     ReviewCreate,
     ReviewCreated,
 )
@@ -56,6 +57,25 @@ async def get_movie_detail(
     """Retorna todas as informações e avaliações de um filme."""
 
     return await MovieService(session).get_detail(sk_movie_id)
+
+
+@router.patch(
+    "/{sk_movie_id}",
+    response_model=MovieDetail,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_409_CONFLICT: {"model": ErrorResponse},
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+    },
+)
+async def update_movie(
+    sk_movie_id: Annotated[str, Path(min_length=1, max_length=64)],
+    payload: MovieUpdate,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> MovieDetail:
+    """Atualiza parcialmente um filme e seus relacionamentos."""
+
+    return await MovieService(session).update(sk_movie_id, payload)
 
 
 @router.post(
