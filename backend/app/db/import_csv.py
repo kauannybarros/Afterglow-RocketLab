@@ -64,6 +64,15 @@ def _required_text(value: str) -> str:
     return normalized
 
 
+def _movie_title(value: str) -> str:
+    """Remove aspas externas e desfaz escapes de aspas vindos do CSV."""
+
+    normalized = _required_text(value)
+    while len(normalized) >= 2 and normalized.startswith('"') and normalized.endswith('"'):
+        normalized = normalized[1:-1].strip().replace('""', '"')
+    return _required_text(normalized)
+
+
 def _optional_text(value: str) -> str | None:
     normalized = value.strip()
     return normalized or None
@@ -121,7 +130,7 @@ BASE_1_SPECS = (
         {
             "sk_movie_id": _required_text,
             "id_filme": _required_text,
-            "titulo": _required_text,
+            "titulo": _movie_title,
             "data_lancamento": _optional(date.fromisoformat),
             "ano_lancamento": _optional(_integer),
             "duracao_minutos": _optional(_integer),
