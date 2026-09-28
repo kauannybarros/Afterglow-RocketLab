@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
@@ -10,6 +10,7 @@ NonEmptyString = Annotated[str, StringConstraints(strip_whitespace=True, min_len
 PersonName = Annotated[NonEmptyString, StringConstraints(max_length=255)]
 GenreName = Annotated[NonEmptyString, StringConstraints(max_length=50)]
 CompanyName = Annotated[NonEmptyString, StringConstraints(max_length=255)]
+MovieSort = Literal["rating", "title"]
 
 
 class ApiModel(BaseModel):

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.movies.models import DimCompany, DimGenre, DimMovie, DimPerson, DimReview, PersonType
+from app.movies.schemas import MovieSort
 
 
 class MovieRepository:
@@ -27,6 +28,7 @@ class MovieRepository:
         min_rating: float | None,
         release_year: int | None,
         movie_status: str | None,
+        sort: MovieSort,
     ) -> tuple[list[DimMovie], int]:
         filters = []
         if search:
@@ -47,6 +49,17 @@ class MovieRepository:
             .outerjoin(DimReview, DimReview.sk_movie_id == DimMovie.sk_movie_id)
             .where(*filters)
         )
+        normalized_title = func.lower(func.ltrim(DimMovie.titulo, " \"'"))
+        if sort == "title":
+            order_by = (normalized_title, DimMovie.sk_movie_id)
+        else:
+            order_by = (
+                DimReview.nota_media_usuarios.desc().nulls_last(),
+                DimReview.qtd_avaliacoes_usuarios.desc().nulls_last(),
+                normalized_title,
+                DimMovie.sk_movie_id,
+            )
+
         result = await self.session.execute(
             select(DimMovie)
             .outerjoin(DimReview, DimReview.sk_movie_id == DimMovie.sk_movie_id)
@@ -55,12 +68,7 @@ class MovieRepository:
                 selectinload(DimMovie.genres),
                 selectinload(DimMovie.reviews_summary),
             )
-            .order_by(
-                DimReview.nota_media_usuarios.desc().nulls_last(),
-                DimReview.qtd_avaliacoes_usuarios.desc().nulls_last(),
-                func.lower(DimMovie.titulo),
-                DimMovie.sk_movie_id,
-            )
+            .order_by(*order_by)
             .offset((page - 1) * page_size)
             .limit(page_size)
         )

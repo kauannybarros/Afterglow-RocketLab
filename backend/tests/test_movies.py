@@ -152,6 +152,69 @@ async def test_list_movies_returns_paginated_results_in_title_order(
     assert [movie["titulo"] for movie in second_page.json()["items"]] == ["Zeta"]
 
 
+async def test_list_movies_supports_rating_and_alphabetical_sorting(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, session_factory = movie_client
+    movie_ids = {}
+    for title in ["Zeta", "Alpha", "Beta"]:
+        response = await client.post("/api/v1/movies", json={"titulo": title})
+        movie_ids[title] = response.json()["sk_movie_id"]
+
+    async with session_factory.begin() as session:
+        ratings = {"Zeta": (9.0, 1), "Alpha": (7.0, 10), "Beta": (9.0, 5)}
+        for title, (average, count) in ratings.items():
+            summary = await session.scalar(
+                select(DimReview).where(DimReview.sk_movie_id == movie_ids[title])
+            )
+            assert summary is not None
+            summary.nota_media_usuarios = average
+            summary.qtd_avaliacoes_usuarios = count
+
+    by_rating = await client.get("/api/v1/movies", params={"sort": "rating"})
+    alphabetical = await client.get("/api/v1/movies", params={"sort": "title"})
+
+    assert [movie["titulo"] for movie in by_rating.json()["items"]] == [
+        "Beta",
+        "Zeta",
+        "Alpha",
+    ]
+    assert [movie["titulo"] for movie in alphabetical.json()["items"]] == [
+        "Alpha",
+        "Beta",
+        "Zeta",
+    ]
+
+
+async def test_list_movies_rejects_invalid_sorting(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+
+    response = await client.get("/api/v1/movies", params={"sort": "recent"})
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "validation_error"
+
+
+async def test_alphabetical_sorting_ignores_leading_quotes(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+    for title in ["Zulu", "\"Alpha\"", "Beta", "'Aurora'"]:
+        response = await client.post("/api/v1/movies", json={"titulo": title})
+        assert response.status_code == 201
+
+    response = await client.get("/api/v1/movies", params={"sort": "title"})
+
+    assert [movie["titulo"] for movie in response.json()["items"]] == [
+        "\"Alpha\"",
+        "'Aurora'",
+        "Beta",
+        "Zulu",
+    ]
+
+
 async def test_list_movies_searches_title_case_insensitively(
     movie_client: tuple[AsyncClient, TestSessionFactory],
 ) -> None:

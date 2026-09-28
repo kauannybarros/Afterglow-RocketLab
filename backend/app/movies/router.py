@@ -12,6 +12,7 @@ from app.movies.schemas import (
     MovieDetail,
     MovieFilterOptions,
     MoviePage,
+    MovieSort,
     MovieUpdate,
     ReviewCreate,
     ReviewCreated,
@@ -37,8 +38,9 @@ async def list_movies(
     min_rating: Annotated[float | None, Query(ge=0, le=10)] = None,
     release_year: Annotated[int | None, Query(ge=1800, le=2100)] = None,
     movie_status: Annotated[str | None, Query(max_length=50)] = None,
+    sort: Annotated[MovieSort, Query()] = "rating",
 ) -> MoviePage:
-    """Filtra e lista filmes da maior avaliação para a menor."""
+    """Filtra e lista filmes pela ordenação selecionada."""
 
     return await MovieService(session).list_page(
         page=page,
@@ -48,6 +50,7 @@ async def list_movies(
         min_rating=min_rating,
         release_year=release_year,
         movie_status=movie_status,
+        sort=sort,
     )
 
 

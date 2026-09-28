@@ -16,6 +16,7 @@ from app.movies.schemas import (
     MovieDetail,
     MovieFilterOptions,
     MoviePage,
+    MovieSort,
     MovieSummary,
     MovieUpdate,
     PaginationMeta,
@@ -115,6 +116,7 @@ class MovieService:
         min_rating: float | None,
         release_year: int | None,
         movie_status: str | None,
+        sort: MovieSort,
     ) -> MoviePage:
         normalized_search = search.strip() if search else None
         normalized_genre = genre.strip() if genre else None
@@ -127,6 +129,7 @@ class MovieService:
             min_rating=min_rating,
             release_year=release_year,
             movie_status=normalized_status or None,
+            sort=sort,
         )
         total_pages = (total_items + page_size - 1) // page_size
 
