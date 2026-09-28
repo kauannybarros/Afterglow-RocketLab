@@ -11,6 +11,7 @@ from typing import Literal
 from uuid import uuid4
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Column,
     Date,
@@ -269,7 +270,7 @@ class DimReview(Base):
 
 
 class MovieList(Base):
-    """Coleção de filmes criada pelo administrador."""
+    """Coleção de filmes personalizada ou permanente do sistema."""
 
     __tablename__ = "movie_lists"
 
@@ -278,6 +279,7 @@ class MovieList(Base):
     )
     nome: Mapped[str] = mapped_column(String(120, collation="NOCASE"), unique=True, index=True)
     descricao: Mapped[str | None] = mapped_column(String(1000), default=None)
+    is_system: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     movies: Mapped[list[DimMovie]] = relationship(

@@ -1,13 +1,14 @@
 """Contratos HTTP das listas personalizadas de filmes."""
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field, StringConstraints
 
 from app.movies.schemas import ApiModel, MovieSummary
 
 ListName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
+SystemMovieList = Literal["watchlist", "favorites"]
 
 
 class MovieListCreate(ApiModel):
@@ -24,6 +25,7 @@ class MovieListSummary(ApiModel):
     sk_movie_list_id: str
     nome: str
     descricao: str | None
+    is_system: bool
     qtd_filmes: int = Field(ge=0)
     created_at: datetime
 

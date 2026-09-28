@@ -376,3 +376,82 @@ async def test_create_rating_with_comment_returns_public_review(
 
     detail = await client.get(f"/api/v1/movies/{movie_id}")
     assert len(detail.json()["reviews"]) == 1
+
+
+async def test_movie_lists_include_two_permanent_lists(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+
+    response = await client.get("/api/v1/movie-lists")
+
+    assert response.status_code == 200
+    assert [item["nome"] for item in response.json()] == ["WatchList", "Favoritos"]
+    assert all(item["is_system"] for item in response.json())
+
+
+async def test_quick_actions_add_movie_to_permanent_lists_without_duplicates(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+    movie_response = await client.post(
+        "/api/v1/movies",
+        json={"titulo": "Filme para guardar"},
+    )
+    movie_id = movie_response.json()["sk_movie_id"]
+
+    first_watchlist = await client.post(
+        f"/api/v1/movie-lists/system/watchlist/movies/{movie_id}"
+    )
+    repeated_watchlist = await client.post(
+        f"/api/v1/movie-lists/system/watchlist/movies/{movie_id}"
+    )
+    favorite = await client.post(
+        f"/api/v1/movie-lists/system/favorites/movies/{movie_id}"
+    )
+
+    assert first_watchlist.status_code == 200
+    assert first_watchlist.json()["nome"] == "WatchList"
+    assert repeated_watchlist.status_code == 200
+    assert repeated_watchlist.json()["qtd_filmes"] == 1
+    assert favorite.status_code == 200
+    assert favorite.json()["nome"] == "Favoritos"
+    assert favorite.json()["movies"][0]["sk_movie_id"] == movie_id
+
+
+async def test_permanent_lists_cannot_be_recreated_or_deleted(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+    lists_response = await client.get("/api/v1/movie-lists")
+    watchlist = lists_response.json()[0]
+
+    duplicate = await client.post(
+        "/api/v1/movie-lists",
+        json={"nome": "watchlist", "descricao": None},
+    )
+    deletion = await client.delete(
+        f"/api/v1/movie-lists/{watchlist['sk_movie_list_id']}"
+    )
+
+    assert duplicate.status_code == 409
+    assert duplicate.json()["error"]["code"] == "movie_list_name_conflict"
+    assert deletion.status_code == 403
+    assert deletion.json()["error"]["code"] == "system_movie_list_protected"
+
+
+async def test_custom_movie_list_can_be_deleted(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+    create_response = await client.post(
+        "/api/v1/movie-lists",
+        json={"nome": "Fim de semana", "descricao": None},
+    )
+    list_id = create_response.json()["sk_movie_list_id"]
+
+    deletion = await client.delete(f"/api/v1/movie-lists/{list_id}")
+    detail = await client.get(f"/api/v1/movie-lists/{list_id}")
+
+    assert deletion.status_code == 204
+    assert detail.status_code == 404

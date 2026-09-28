@@ -1,6 +1,6 @@
 """Persistência das listas personalizadas de filmes."""
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -15,7 +15,15 @@ class MovieListRepository:
         result = await self.session.execute(
             select(MovieList)
             .options(selectinload(MovieList.movies))
-            .order_by(func.lower(MovieList.nome), MovieList.sk_movie_list_id)
+            .order_by(
+                case(
+                    (MovieList.nome == "WatchList", 0),
+                    (MovieList.nome == "Favoritos", 1),
+                    else_=2,
+                ),
+                func.lower(MovieList.nome),
+                MovieList.sk_movie_list_id,
+            )
         )
         return list(result.scalars())
 
@@ -49,3 +57,6 @@ class MovieListRepository:
             )
         )
         return result.scalar_one_or_none()
+
+    async def delete(self, movie_list: MovieList) -> None:
+        await self.session.delete(movie_list)

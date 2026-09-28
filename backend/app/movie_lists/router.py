@@ -2,12 +2,17 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, status
+from fastapi import APIRouter, Depends, Path, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.errors import ErrorResponse
 from app.db.session import get_db
-from app.movie_lists.schemas import MovieListCreate, MovieListDetail, MovieListSummary
+from app.movie_lists.schemas import (
+    MovieListCreate,
+    MovieListDetail,
+    MovieListSummary,
+    SystemMovieList,
+)
 from app.movie_lists.service import MovieListService
 
 router = APIRouter(prefix="/movie-lists", tags=["movie-lists"])
@@ -75,3 +80,40 @@ async def add_movie_to_list(
     """Adiciona um filme existente a uma lista existente."""
 
     return await MovieListService(session).add_movie(list_id, movie_id)
+
+
+@router.post(
+    "/system/{system_list}/movies/{movie_id}",
+    response_model=MovieListDetail,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+    },
+)
+async def add_movie_to_system_list(
+    system_list: SystemMovieList,
+    movie_id: Annotated[str, Path(min_length=1, max_length=64)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> MovieListDetail:
+    """Adiciona um filme à WatchList ou aos Favoritos."""
+
+    return await MovieListService(session).add_movie_to_system_list(system_list, movie_id)
+
+
+@router.delete(
+    "/{list_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+    },
+)
+async def delete_movie_list(
+    list_id: Annotated[str, Path(min_length=1, max_length=64)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    """Exclui uma lista personalizada, preservando as listas permanentes."""
+
+    await MovieListService(session).delete(list_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

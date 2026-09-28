@@ -5,9 +5,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import DomainError
 from app.movie_lists.repository import MovieListRepository
-from app.movie_lists.schemas import MovieListCreate, MovieListDetail, MovieListSummary
+from app.movie_lists.schemas import (
+    MovieListCreate,
+    MovieListDetail,
+    MovieListSummary,
+    SystemMovieList,
+)
 from app.movies.models import DimMovie, MovieList
 from app.movies.schemas import GenreRead, MovieSummary, ReviewSummary
+
+SYSTEM_LISTS: dict[SystemMovieList, tuple[str, str]] = {
+    "watchlist": ("WatchList", "Filmes que você quer assistir."),
+    "favorites": ("Favoritos", "Seus filmes favoritos em um só lugar."),
+}
 
 
 class MovieListService:
@@ -16,8 +26,11 @@ class MovieListService:
         self.repository = MovieListRepository(session)
 
     async def list_all(self) -> list[MovieListSummary]:
-        lists = await self.repository.list_all()
-        return [self._to_summary(movie_list) for movie_list in lists]
+        async with self.session.begin():
+            await self._ensure_system_lists()
+            lists = await self.repository.list_all()
+            response = [self._to_summary(movie_list) for movie_list in lists]
+        return response
 
     async def get_detail(self, list_id: str) -> MovieListDetail:
         movie_list = await self.repository.get_detail(list_id)
@@ -28,6 +41,7 @@ class MovieListService:
     async def create(self, payload: MovieListCreate) -> MovieListDetail:
         try:
             async with self.session.begin():
+                await self._ensure_system_lists()
                 if await self.repository.get_by_name(payload.nome) is not None:
                     raise DomainError(
                         code="movie_list_name_conflict",
@@ -77,12 +91,76 @@ class MovieListService:
 
         return response
 
+    async def add_movie_to_system_list(
+        self,
+        system_list: SystemMovieList,
+        movie_id: str,
+    ) -> MovieListDetail:
+        """Adiciona um filme a uma lista permanente sem duplicá-lo."""
+
+        async with self.session.begin():
+            await self._ensure_system_lists()
+            name, _ = SYSTEM_LISTS[system_list]
+            summary = await self.repository.get_by_name(name)
+            if summary is None:
+                raise self._not_found()
+            movie_list = await self.repository.get_detail(
+                summary.sk_movie_list_id,
+                lock=True,
+            )
+            if movie_list is None:
+                raise self._not_found()
+
+            movie = await self.repository.get_movie(movie_id)
+            if movie is None:
+                raise self._movie_not_found()
+
+            if not any(item.sk_movie_id == movie_id for item in movie_list.movies):
+                movie_list.movies.append(movie)
+                await self.session.flush()
+            response = self._to_detail(movie_list)
+
+        return response
+
+    async def delete(self, list_id: str) -> None:
+        """Exclui somente listas personalizadas."""
+
+        async with self.session.begin():
+            movie_list = await self.repository.get_detail(list_id, lock=True)
+            if movie_list is None:
+                raise self._not_found()
+            if movie_list.is_system:
+                raise DomainError(
+                    code="system_movie_list_protected",
+                    message="Listas permanentes não podem ser excluídas.",
+                    status_code=403,
+                )
+            await self.repository.delete(movie_list)
+            await self.session.flush()
+
+    async def _ensure_system_lists(self) -> None:
+        for name, description in SYSTEM_LISTS.values():
+            movie_list = await self.repository.get_by_name(name)
+            if movie_list is None:
+                self.session.add(
+                    MovieList(
+                        nome=name,
+                        descricao=description,
+                        is_system=True,
+                        movies=[],
+                    )
+                )
+            else:
+                movie_list.is_system = True
+        await self.session.flush()
+
     @staticmethod
     def _to_summary(movie_list: MovieList) -> MovieListSummary:
         return MovieListSummary(
             sk_movie_list_id=movie_list.sk_movie_list_id,
             nome=movie_list.nome,
             descricao=movie_list.descricao,
+            is_system=movie_list.is_system,
             qtd_filmes=len(movie_list.movies),
             created_at=movie_list.created_at,
         )

@@ -29,3 +29,10 @@ def test_movie_review_columns_match_shared_csv() -> None:
         table.columns.keys()
     )
     assert table.primary_key.columns.keys() == ["sk_movie_review_id"]
+
+
+def test_movie_lists_identify_permanent_lists() -> None:
+    table = Base.metadata.tables["movie_lists"]
+
+    assert "is_system" in table.columns
+    assert table.columns["is_system"].nullable is False
