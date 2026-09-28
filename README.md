@@ -54,8 +54,9 @@ O modelo usa um esquema estrela para o catálogo de filmes:
 O schema corresponde aos nove arquivos CSV atuais da camada Diamond, com a
 adição de `movie_reviews`: uma avaliação individual por linha, na escala 0–10.
 A tabela aceita diretamente as colunas `sk_movie_review_id`, `sk_movie_id`,
-`nome`, `nota` e `comentario` do CSV enviado separadamente. `created_at` é
-gerado pelo banco. O contexto generativo não faz parte desta base.
+`nome`, `nota` e `comentario` do CSV enviado separadamente. A nota é
+obrigatória e o comentário é opcional, permitindo avaliações sem resenha.
+`created_at` é gerado pelo banco. O contexto generativo não faz parte desta base.
 
 Os CSVs não são versionados neste repositório. Depois de aplicar as migrações,
 faça uma validação completa dos arquivos sem alterar o banco:
@@ -104,7 +105,7 @@ O banco padrão é SQLite local em `backend/rocketlab.db`. Ajuste
 ## Frontend
 
 O frontend apresenta o catálogo ordenado por avaliação e quantidade de
-resenhas, com busca por título, filtros de gênero, nota, ano e status,
+avaliações, com busca por título, filtros de gênero, nota, ano e status,
 paginação, detalhes e avaliações, gerenciamento de filmes e listas
 personalizadas. Uma lista pode ser criada vazia ou a partir de um filme, e
 novos filmes podem ser adicionados pela página de detalhes. A interface usa um
