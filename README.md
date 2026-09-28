@@ -22,6 +22,7 @@ ou rotinas de carga.
 │   │   └── movies/        # modelos SQLAlchemy do domínio de filmes
 │   ├── migrations/        # ambiente e revisões Alembic
 │   └── tests/
+├── frontend/              # interface React, TypeScript e Vite
 └── README.md
 ```
 
@@ -99,3 +100,23 @@ cd backend
 
 O banco padrão é SQLite local em `backend/rocketlab.db`. Ajuste
 `DATABASE_URL` no arquivo `.env` para usar outro banco compatível.
+
+## Frontend
+
+O frontend apresenta o catálogo com busca e paginação e a página detalhada de
+cada filme. A interface usa um tema escuro responsivo com detalhes em pink e
+azul ciano.
+
+Com o backend em execução, abra outro terminal:
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+A interface ficará disponível em `http://localhost:5173`. Durante o
+desenvolvimento, o Vite encaminha as requisições iniciadas em `/api` para o
+backend em `http://localhost:8000`. Para usar outra URL, defina
+`VITE_API_URL` no arquivo `.env`.
