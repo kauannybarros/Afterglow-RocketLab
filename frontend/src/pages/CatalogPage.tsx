@@ -12,7 +12,7 @@ import {
 import { MovieCard } from "../components/MovieCard";
 import { Pagination } from "../components/Pagination";
 import { formatCount, formatMovieTitle } from "../format";
-import type { MovieFilterOptions, MoviePage } from "../types";
+import type { MovieFilterOptions, MoviePage, MovieSort } from "../types";
 
 const PAGE_SIZE = 20;
 
@@ -22,6 +22,8 @@ export function CatalogPage() {
   const query = searchParams.get("busca") ?? "";
   const genre = searchParams.get("genero") ?? "";
   const movieStatus = searchParams.get("status") ?? "";
+  const sort: MovieSort =
+    searchParams.get("ordenacao") === "alfabetica" ? "title" : "rating";
   const ratingParam = Number(searchParams.get("nota"));
   const minRating =
     searchParams.has("nota") && Number.isFinite(ratingParam) && ratingParam >= 0 && ratingParam <= 10
@@ -85,6 +87,7 @@ export function CatalogPage() {
       minRating,
       releaseYear,
       movieStatus,
+      sort,
       signal: controller.signal,
     })
       .then(setData)
@@ -101,7 +104,7 @@ export function CatalogPage() {
       });
 
     return () => controller.abort();
-  }, [genre, minRating, movieStatus, page, query, releaseYear, reloadKey]);
+  }, [genre, minRating, movieStatus, page, query, releaseYear, reloadKey, sort]);
 
   const totalLabel = useMemo(() => {
     if (!data) return "Explore nosso acervo";
@@ -119,6 +122,7 @@ export function CatalogPage() {
       movieStatus,
       minRating: minRating === null ? "" : String(minRating),
       releaseYear: releaseYear === null ? "" : String(releaseYear),
+      sort,
     },
   ) {
     const next = new URLSearchParams();
@@ -127,6 +131,7 @@ export function CatalogPage() {
     if (nextFilters.movieStatus) next.set("status", nextFilters.movieStatus);
     if (nextFilters.minRating) next.set("nota", nextFilters.minRating);
     if (nextFilters.releaseYear) next.set("ano", nextFilters.releaseYear);
+    if (nextFilters.sort === "title") next.set("ordenacao", "alfabetica");
     if (nextPage > 1) next.set("pagina", String(nextPage));
     setSearchParams(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -140,6 +145,7 @@ export function CatalogPage() {
       movieStatus: draftStatus,
       minRating: draftRating,
       releaseYear: draftYear,
+      sort,
     });
   }
 
@@ -155,6 +161,18 @@ export function CatalogPage() {
       movieStatus: "",
       minRating: "",
       releaseYear: "",
+      sort,
+    });
+  }
+
+  function changeSort(nextSort: MovieSort) {
+    updateLocation(1, {
+      query,
+      genre,
+      movieStatus,
+      minRating: minRating === null ? "" : String(minRating),
+      releaseYear: releaseYear === null ? "" : String(releaseYear),
+      sort: nextSort,
     });
   }
 
@@ -282,14 +300,39 @@ export function CatalogPage() {
                 ? <>Filmes com “{query}”</>
                 : filtersActive
                   ? "Filmes filtrados"
-                  : "Filmes mais bem avaliados"}
+                  : sort === "title"
+                    ? "Filmes em ordem alfabética"
+                    : "Filmes mais bem avaliados"}
             </h2>
           </div>
-          {data && !loading && (
-            <span className="result-count">
-              {formatCount(data.pagination.total_items)} resultados
-            </span>
-          )}
+          <div className="catalog-toolbar">
+            <div className="catalog-sort" aria-label="Ordenar catálogo" role="group">
+              <span>Ordenar por</span>
+              <div className="catalog-sort__options">
+                <button
+                  aria-pressed={sort === "title"}
+                  className={sort === "title" ? "is-active" : ""}
+                  onClick={() => changeSort("title")}
+                  type="button"
+                >
+                  Ordem alfabética
+                </button>
+                <button
+                  aria-pressed={sort === "rating"}
+                  className={sort === "rating" ? "is-active" : ""}
+                  onClick={() => changeSort("rating")}
+                  type="button"
+                >
+                  Melhores avaliados
+                </button>
+              </div>
+            </div>
+            {data && !loading && (
+              <span className="result-count">
+                {formatCount(data.pagination.total_items)} resultados
+              </span>
+            )}
+          </div>
         </div>
 
         {loading && <MovieGridSkeleton />}

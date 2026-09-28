@@ -8,6 +8,7 @@ import type {
   MovieListDetail,
   MovieListSummary,
   MoviePage,
+  MovieSort,
   MovieUpdatePayload,
   ReviewCreatePayload,
   ReviewCreated,
@@ -73,6 +74,7 @@ interface GetMoviesParams {
   minRating?: number | null;
   releaseYear?: number | null;
   movieStatus?: string;
+  sort?: MovieSort;
   signal?: AbortSignal;
 }
 
@@ -84,6 +86,7 @@ export function getMovies({
   minRating,
   releaseYear,
   movieStatus,
+  sort,
   signal,
 }: GetMoviesParams): Promise<MoviePage> {
   const params = new URLSearchParams({
@@ -105,6 +108,9 @@ export function getMovies({
   }
   if (movieStatus?.trim()) {
     params.set("movie_status", movieStatus.trim());
+  }
+  if (sort) {
+    params.set("sort", sort);
   }
 
   return request<MoviePage>("/movies?" + params.toString(), { signal });

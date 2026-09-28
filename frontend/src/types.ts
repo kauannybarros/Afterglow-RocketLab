@@ -95,6 +95,8 @@ export interface MovieFilterOptions {
   status: string[];
 }
 
+export type MovieSort = "rating" | "title";
+
 export interface MovieCreatePayload {
   titulo: string;
   id_filme: string | null;
