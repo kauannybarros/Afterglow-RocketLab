@@ -53,10 +53,21 @@ repositório `rocketlab2026-2`.
 ```bash
 cd backend
 python3 -m venv .venv
-.venv/bin/pip install -e ".[dev]"
+source .venv/bin/activate
+pip install -e ".[dev]"
 cp .env.example .env
-.venv/bin/alembic upgrade head
+alembic upgrade head
 ```
+
+No Windows PowerShell, use o comando abaixo no lugar de
+`source .venv/bin/activate`:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Sempre que abrir um novo terminal para trabalhar no backend, entre novamente
+na pasta `backend` e ative o ambiente virtual antes de executar os comandos.
 
 Esse processo cria o ambiente virtual, instala as dependências, configura as
 variáveis locais e cria ou atualiza o banco SQLite em
@@ -78,7 +89,7 @@ Pasta_Principal/
 Ainda dentro de `backend`, valide primeiro os arquivos sem alterar o banco:
 
 ```bash
-.venv/bin/python -m app.db.import_csv \
+python -m app.db.import_csv \
   --bases-1 ../../bases-1/bases_atv_dev1 \
   --bases-2 ../../bases-2/bases_atv_dev_2 \
   --dry-run
@@ -87,7 +98,7 @@ Ainda dentro de `backend`, valide primeiro os arquivos sem alterar o banco:
 Depois, faça a importação:
 
 ```bash
-.venv/bin/python -m app.db.import_csv \
+python -m app.db.import_csv \
   --bases-1 ../../bases-1/bases_atv_dev1 \
   --bases-2 ../../bases-2/bases_atv_dev_2
 ```
@@ -100,7 +111,7 @@ atualizados sem criar duplicações.
 Ainda dentro de `backend`, execute:
 
 ```bash
-.venv/bin/uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 ```
 
 O backend ficará disponível em:
@@ -145,14 +156,14 @@ Para aplicar todas as migrações pendentes:
 
 ```bash
 cd backend
-.venv/bin/alembic upgrade head
+alembic upgrade head
 ```
 
 Para criar uma nova migração após alterar os modelos:
 
 ```bash
-.venv/bin/alembic revision --autogenerate -m "descreva a alteração"
-.venv/bin/alembic upgrade head
+alembic revision --autogenerate -m "descreva a alteração"
+alembic upgrade head
 ```
 
 Cada avaliação individual possui uma nota obrigatória e um comentário
@@ -179,8 +190,8 @@ Para executar os testes e o lint do backend:
 
 ```bash
 cd backend
-.venv/bin/pytest -q
-.venv/bin/ruff check app tests
+pytest -q
+ruff check app tests
 ```
 
 Para verificar os tipos e gerar o build de produção do frontend:
