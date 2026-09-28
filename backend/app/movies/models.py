@@ -232,7 +232,7 @@ class FactMoviePerformance(Base):
 
 
 class MovieReview(Base):
-    """Avaliação individual de um filme na escala de 0 a 10."""
+    """Avaliação individual; o comentário é opcional."""
 
     __tablename__ = "movie_reviews"
     __table_args__ = (CheckConstraint("nota >= 0 AND nota <= 10", name="nota_range"),)
@@ -245,7 +245,7 @@ class MovieReview(Base):
     )
     nome: Mapped[str] = mapped_column(String(120))
     nota: Mapped[float] = mapped_column(Double)
-    comentario: Mapped[str] = mapped_column(String(4000))
+    comentario: Mapped[str | None] = mapped_column(String(4000), default=None)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     movie: Mapped[DimMovie] = relationship(back_populates="reviews")

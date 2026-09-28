@@ -128,7 +128,7 @@ async def create_movie_review(
     payload: ReviewCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> ReviewCreated:
-    """Cadastra uma avaliação e retorna a nova média consolidada."""
+    """Cadastra uma nota, com resenha opcional, e retorna a nova média."""
 
     return await MovieService(session).create_review(sk_movie_id, payload)
 

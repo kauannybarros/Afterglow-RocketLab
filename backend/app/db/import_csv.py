@@ -218,7 +218,7 @@ BASE_2_REVIEW_SPECS = (
             "sk_movie_id": _required_text,
             "nome": _required_text,
             "nota": _float,
-            "comentario": _required_text,
+            "comentario": _optional_text,
         },
     ),
 )

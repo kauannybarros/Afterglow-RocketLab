@@ -251,3 +251,65 @@ async def test_get_movie_detail_returns_not_found(
         "message": "Filme não encontrado.",
         "details": [],
     }
+
+
+async def test_create_rating_without_comment_updates_summary_without_public_review(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, session_factory = movie_client
+    create_response = await client.post(
+        "/api/v1/movies",
+        json={"titulo": "Filme avaliado"},
+    )
+    movie_id = create_response.json()["sk_movie_id"]
+
+    response = await client.post(
+        f"/api/v1/movies/{movie_id}/reviews",
+        json={"nome": "Ana", "nota": 7.5},
+    )
+
+    assert response.status_code == 201
+    assert response.json() == {
+        "review": None,
+        "avaliacoes": {"qtd_avaliacoes": 1, "nota_media": 7.5},
+    }
+
+    detail = await client.get(f"/api/v1/movies/{movie_id}")
+    assert detail.json()["avaliacoes"] == {
+        "qtd_avaliacoes": 1,
+        "nota_media": 7.5,
+    }
+    assert detail.json()["reviews"] == []
+
+    async with session_factory() as session:
+        rating = await session.scalar(
+            select(MovieReview).where(MovieReview.sk_movie_id == movie_id)
+        )
+        assert rating is not None
+        assert rating.nota == 7.5
+        assert rating.comentario is None
+
+
+async def test_create_rating_with_comment_returns_public_review(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+    create_response = await client.post(
+        "/api/v1/movies",
+        json={"titulo": "Filme com resenha"},
+    )
+    movie_id = create_response.json()["sk_movie_id"]
+
+    response = await client.post(
+        f"/api/v1/movies/{movie_id}/reviews",
+        json={"nome": "Bia", "nota": 8.25, "comentario": "Gostei bastante."},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["avaliacoes"] == {"qtd_avaliacoes": 1, "nota_media": 8.25}
+    assert body["review"]["nome"] == "Bia"
+    assert body["review"]["comentario"] == "Gostei bastante."
+
+    detail = await client.get(f"/api/v1/movies/{movie_id}")
+    assert len(detail.json()["reviews"]) == 1

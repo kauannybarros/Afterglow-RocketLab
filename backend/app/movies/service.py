@@ -259,7 +259,11 @@ class MovieService:
             self.session.add(review)
             await self.session.flush()
             response = ReviewCreated(
-                review=ReviewRead.model_validate(review),
+                review=(
+                    ReviewRead.model_validate(review)
+                    if review.comentario is not None
+                    else None
+                ),
                 avaliacoes=ReviewSummary(
                     qtd_avaliacoes=new_count,
                     nota_media=summary.nota_media_usuarios,
@@ -341,7 +345,7 @@ class MovieService:
             key=lambda person: (person.tipo_pessoa, person.nome_pessoa.casefold()),
         )
         reviews = sorted(
-            movie.reviews,
+            (review for review in movie.reviews if review.comentario),
             key=lambda review: (review.created_at, review.sk_movie_review_id),
         )
 

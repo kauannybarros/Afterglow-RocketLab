@@ -122,11 +122,13 @@ class PerformanceRead(ApiModel):
 
 
 class ReviewCreate(ApiModel):
-    """Dados aceitos para uma avaliação na escala de 0 a 10."""
+    """Dados aceitos para uma nota, acompanhada ou não de resenha."""
 
     nome: Annotated[NonEmptyString, StringConstraints(max_length=120)]
     nota: float = Field(ge=0, le=10)
-    comentario: Annotated[NonEmptyString, StringConstraints(max_length=4000)]
+    comentario: (
+        Annotated[NonEmptyString, StringConstraints(max_length=4000)] | None
+    ) = None
 
 
 class ReviewRead(ReviewCreate):
@@ -143,7 +145,7 @@ class ReviewSummary(ApiModel):
 class ReviewCreated(ApiModel):
     """Avaliação criada acompanhada do resumo atualizado do filme."""
 
-    review: ReviewRead
+    review: ReviewRead | None
     avaliacoes: ReviewSummary
 
 

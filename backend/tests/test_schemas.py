@@ -31,6 +31,13 @@ def test_review_accepts_score_range_boundaries() -> None:
     assert ReviewCreate(nome="Pessoa", nota=10, comentario="Ótimo").nota == 10
 
 
+def test_review_accepts_rating_without_comment() -> None:
+    review = ReviewCreate(nome="Pessoa", nota=7.5)
+
+    assert review.nota == 7.5
+    assert review.comentario is None
+
+
 def test_movie_update_requires_at_least_one_field() -> None:
     with pytest.raises(ValidationError, match="informe ao menos um campo"):
         MovieUpdate()
