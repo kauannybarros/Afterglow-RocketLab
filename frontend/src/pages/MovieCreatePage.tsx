@@ -10,6 +10,7 @@ import {
   SparklesIcon,
 } from "../components/Icons";
 import { MoviePoster } from "../components/MoviePoster";
+import { formatMovieTitle, normalizeMovieTitle } from "../format";
 import type {
   MovieCreatePayload,
   MovieDetail,
@@ -152,7 +153,7 @@ function peopleNames(movie: MovieDetail, role: PersonRole): string {
 
 function valuesFromMovie(movie: MovieDetail): FormValues {
   return {
-    titulo: movie.titulo,
+    titulo: normalizeMovieTitle(movie.titulo),
     id_filme: movie.id_filme,
     data_lancamento: movie.data_lancamento ?? "",
     ano_lancamento: movie.ano_lancamento?.toString() ?? "",
@@ -385,6 +386,7 @@ export function MovieCreatePage({ mode = "create" }: MovieCreatePageProps) {
                   aria-invalid={Boolean(errors.titulo)}
                   autoFocus
                   maxLength={500}
+                  className="movie-title-input"
                   name="titulo"
                   onChange={updateField}
                   placeholder="Ex.: Central do Brasil"
@@ -622,7 +624,7 @@ export function MovieCreatePage({ mode = "create" }: MovieCreatePageProps) {
           <div className="movie-preview__poster">
             <MoviePoster
               src={optional(values.url_poster)}
-              title={values.titulo.trim() || "Seu novo filme"}
+              title={formatMovieTitle(values.titulo || "Seu novo filme")}
             />
           </div>
           <div className="movie-preview__copy">
@@ -631,7 +633,7 @@ export function MovieCreatePage({ mode = "create" }: MovieCreatePageProps) {
                 <span className="chip chip--accent" key={genre}>{genre}</span>
               ))}
             </div>
-            <h2>{values.titulo.trim() || "Seu novo filme"}</h2>
+            <h2>{formatMovieTitle(values.titulo || "Seu novo filme")}</h2>
             <p>{releaseYear || "Ano não informado"}</p>
           </div>
           <div className="movie-preview__tip">

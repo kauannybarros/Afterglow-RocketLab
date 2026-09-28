@@ -19,6 +19,7 @@ import {
   formatCount,
   formatCurrency,
   formatDate,
+  formatMovieTitle,
   formatReviewDate,
   initials,
   peopleByRole,
@@ -128,6 +129,7 @@ export function MovieDetailPage() {
   }
 
   const releaseDate = formatDate(movie.data_lancamento);
+  const movieTitle = formatMovieTitle(movie.titulo);
   const movieCreated = Boolean(
     (location.state as { movieCreated?: boolean } | null)?.movieCreated,
   );
@@ -155,7 +157,7 @@ export function MovieDetailPage() {
       await deleteMovie(movie.sk_movie_id);
       navigate("/", {
         replace: true,
-        state: { movieDeleted: true, movieTitle: movie.titulo },
+        state: { movieDeleted: true, movieTitle },
       });
     } catch (requestError: unknown) {
       setDeleteError(
@@ -192,7 +194,7 @@ export function MovieDetailPage() {
 
           <div className="detail-hero__grid">
             <div className="detail-poster">
-              <MoviePoster src={movie.url_poster} title={movie.titulo} />
+              <MoviePoster src={movie.url_poster} title={movieTitle} />
             </div>
 
             <div className="detail-heading">
@@ -205,7 +207,7 @@ export function MovieDetailPage() {
                 {movie.status_filme && <span className="chip">{movie.status_filme}</span>}
               </div>
 
-              <h1>{movie.titulo}</h1>
+              <h1>{movieTitle}</h1>
 
               <div className="detail-heading__meta">
                 {movie.ano_lancamento && (
@@ -381,7 +383,7 @@ export function MovieDetailPage() {
           >
             <span className="confirm-dialog__icon"><TrashIcon /></span>
             <span className="eyebrow eyebrow--plain">Ação permanente</span>
-            <h2 id="delete-movie-title">Excluir “{movie.titulo}”?</h2>
+            <h2 id="delete-movie-title">Excluir “{movieTitle}”?</h2>
             <p id="delete-movie-description">
               O filme, suas avaliações e seus dados de desempenho serão removidos do catálogo.
               Esta ação não pode ser desfeita.

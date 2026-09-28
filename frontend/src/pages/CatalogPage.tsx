@@ -6,7 +6,7 @@ import { Feedback, MovieGridSkeleton } from "../components/Feedback";
 import { CheckIcon, SearchIcon, SparklesIcon } from "../components/Icons";
 import { MovieCard } from "../components/MovieCard";
 import { Pagination } from "../components/Pagination";
-import { formatCount } from "../format";
+import { formatCount, formatMovieTitle } from "../format";
 import type { MoviePage } from "../types";
 
 const PAGE_SIZE = 20;
@@ -128,7 +128,7 @@ export function CatalogPage() {
               <strong>Filme excluído com sucesso</strong>
               <span>
                 {deletionState.movieTitle
-                  ? `“${deletionState.movieTitle}” foi removido do catálogo.`
+                  ? `“${formatMovieTitle(deletionState.movieTitle)}” foi removido do catálogo.`
                   : "O filme foi removido do catálogo."}
               </span>
             </div>
