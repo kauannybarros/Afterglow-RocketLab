@@ -1,9 +1,11 @@
 import { NavLink, Route, Routes } from "react-router-dom";
 import { Brand } from "./components/Brand";
-import { PlusIcon } from "./components/Icons";
+import { ListIcon, PlusIcon } from "./components/Icons";
 import { CatalogPage } from "./pages/CatalogPage";
 import { MovieCreatePage } from "./pages/MovieCreatePage";
 import { MovieDetailPage } from "./pages/MovieDetailPage";
+import { MovieListDetailPage } from "./pages/MovieListDetailPage";
+import { MovieListsPage } from "./pages/MovieListsPage";
 
 function Layout() {
   return (
@@ -13,6 +15,9 @@ function Layout() {
           <Brand />
           <nav aria-label="Navegação principal">
             <NavLink to="/" end>Explorar</NavLink>
+            <NavLink to="/listas">
+              <ListIcon /> <span>Listas</span>
+            </NavLink>
             <NavLink className="nav-create" to="/filmes/novo">
               <PlusIcon /> <span>Cadastrar</span>
             </NavLink>
@@ -26,6 +31,8 @@ function Layout() {
         <Route path="/filmes/novo" element={<MovieCreatePage />} />
         <Route path="/filmes/:movieId/editar" element={<MovieCreatePage mode="edit" />} />
         <Route path="/filmes/:movieId" element={<MovieDetailPage />} />
+        <Route path="/listas" element={<MovieListsPage />} />
+        <Route path="/listas/:listId" element={<MovieListDetailPage />} />
         <Route path="*" element={<CatalogPage />} />
       </Routes>
 

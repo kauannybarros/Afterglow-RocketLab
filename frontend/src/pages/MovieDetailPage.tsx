@@ -7,11 +7,13 @@ import {
   CalendarIcon,
   CheckIcon,
   ClockIcon,
+  ListIcon,
   PencilIcon,
   StarIcon,
   TrashIcon,
   UsersIcon,
 } from "../components/Icons";
+import { MovieListDialog } from "../components/MovieListDialog";
 import { MoviePoster } from "../components/MoviePoster";
 import { Rating } from "../components/Rating";
 import { ReviewForm } from "../components/ReviewForm";
@@ -35,6 +37,7 @@ export function MovieDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -59,22 +62,6 @@ export function MovieDetailPage() {
 
     return () => controller.abort();
   }, [movieId, reloadKey]);
-
-  useEffect(() => {
-    if (!deleteOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !deleting) setDeleteOpen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [deleteOpen, deleting]);
 
   useEffect(() => {
     if (!deleteOpen) return;
@@ -239,6 +226,13 @@ export function MovieDetailPage() {
               )}
 
               <div className="detail-actions">
+                <button
+                  className="button button--primary"
+                  type="button"
+                  onClick={() => setListOpen(true)}
+                >
+                  <ListIcon /> Adicionar à lista
+                </button>
                 <Link className="button button--secondary" to="editar">
                   <PencilIcon /> Editar filme
                 </Link>
@@ -371,6 +365,14 @@ export function MovieDetailPage() {
           )}
         </section>
       </div>
+
+      {listOpen && (
+        <MovieListDialog
+          movieId={movie.sk_movie_id}
+          movieTitle={movieTitle}
+          onClose={() => setListOpen(false)}
+        />
+      )}
 
       {deleteOpen && (
         <div className="modal-backdrop" role="presentation">

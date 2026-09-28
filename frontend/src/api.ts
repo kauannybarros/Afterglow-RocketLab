@@ -3,6 +3,9 @@ import type {
   ApiErrorPayload,
   MovieCreatePayload,
   MovieDetail,
+  MovieListCreatePayload,
+  MovieListDetail,
+  MovieListSummary,
   MoviePage,
   MovieUpdatePayload,
   ReviewCreatePayload,
@@ -114,6 +117,39 @@ export function deleteMovie(movieId: string): Promise<void> {
   return request<void>("/movies/" + encodeURIComponent(movieId), {
     method: "DELETE",
   });
+}
+
+export function getMovieLists(signal?: AbortSignal): Promise<MovieListSummary[]> {
+  return request<MovieListSummary[]>("/movie-lists", { signal });
+}
+
+export function getMovieList(
+  listId: string,
+  signal?: AbortSignal,
+): Promise<MovieListDetail> {
+  return request<MovieListDetail>(
+    "/movie-lists/" + encodeURIComponent(listId),
+    { signal },
+  );
+}
+
+export function createMovieList(
+  payload: MovieListCreatePayload,
+): Promise<MovieListDetail> {
+  return request<MovieListDetail>("/movie-lists", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function addMovieToList(
+  listId: string,
+  movieId: string,
+): Promise<MovieListDetail> {
+  return request<MovieListDetail>(
+    `/movie-lists/${encodeURIComponent(listId)}/movies/${encodeURIComponent(movieId)}`,
+    { method: "POST" },
+  );
 }
 
 export function createReview(

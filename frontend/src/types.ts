@@ -108,6 +108,24 @@ export interface MovieCreatePayload {
 
 export type MovieUpdatePayload = Omit<MovieCreatePayload, "id_filme">;
 
+export interface MovieListCreatePayload {
+  nome: string;
+  descricao: string | null;
+  sk_movie_id?: string | null;
+}
+
+export interface MovieListSummary {
+  sk_movie_list_id: string;
+  nome: string;
+  descricao: string | null;
+  qtd_filmes: number;
+  created_at: string;
+}
+
+export interface MovieListDetail extends MovieListSummary {
+  movies: MovieSummary[];
+}
+
 export interface ApiErrorDetail {
   field?: string | null;
   message: string;

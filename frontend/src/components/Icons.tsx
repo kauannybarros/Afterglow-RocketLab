@@ -125,3 +125,20 @@ export function TrashIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ListIcon(props: IconProps) {
+  return (
+    <svg {...defaults} {...props}>
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+      <path d="M8 9h8M8 13h8M8 17h5" />
+    </svg>
+  );
+}
+
+export function XIcon(props: IconProps) {
+  return (
+    <svg {...defaults} {...props}>
+      <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
+  );
+}
