@@ -103,11 +103,12 @@ O banco padrão é SQLite local em `backend/rocketlab.db`. Ajuste
 
 ## Frontend
 
-O frontend apresenta o catálogo com busca e paginação, detalhes e avaliações,
-gerenciamento de filmes e listas personalizadas. Uma lista pode ser criada
-vazia ou a partir de um filme, e novos filmes podem ser adicionados pela página
-de detalhes. A interface usa um tema escuro responsivo com detalhes em pink e
-azul ciano.
+O frontend apresenta o catálogo ordenado por avaliação e quantidade de
+resenhas, com busca por título, filtros de gênero, nota, ano e status,
+paginação, detalhes e avaliações, gerenciamento de filmes e listas
+personalizadas. Uma lista pode ser criada vazia ou a partir de um filme, e
+novos filmes podem ser adicionados pela página de detalhes. A interface usa um
+tema escuro responsivo com detalhes em pink e azul ciano.
 
 Com o backend em execução, abra outro terminal:
 
