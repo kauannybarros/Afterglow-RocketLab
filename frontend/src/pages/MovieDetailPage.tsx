@@ -130,7 +130,9 @@ export function MovieDetailPage() {
       return {
         ...current,
         avaliacoes: result.avaliacoes,
-        reviews: [...current.reviews, result.review],
+        reviews: result.review
+          ? [...current.reviews, result.review]
+          : current.reviews,
       };
     });
   }

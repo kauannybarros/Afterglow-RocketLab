@@ -12,7 +12,6 @@ interface ReviewFormProps {
 interface ReviewErrors {
   nome?: string;
   nota?: string;
-  comentario?: string;
 }
 
 function parseScore(value: string): number | null {
@@ -48,8 +47,6 @@ export function ReviewForm({ movieId, onCreated }: ReviewFormProps) {
     } else if (parsedScore === null || parsedScore < 0 || parsedScore > 10) {
       nextErrors.nota = "Use um número entre 0 e 10.";
     }
-    if (!comment.trim()) nextErrors.comentario = "Escreva um comentário.";
-
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
@@ -64,7 +61,7 @@ export function ReviewForm({ movieId, onCreated }: ReviewFormProps) {
       const result = await createReview(movieId, {
         nome: name.trim(),
         nota: parsedScore,
-        comentario: comment.trim(),
+        comentario: comment.trim() || null,
       });
       onCreated(result);
       setName("");
@@ -89,7 +86,7 @@ export function ReviewForm({ movieId, onCreated }: ReviewFormProps) {
         <span className="review-form__icon"><StarIcon /></span>
         <div>
           <h3>Compartilhe sua opinião</h3>
-          <p>Sua avaliação ajuda outras pessoas a escolher a próxima história.</p>
+          <p>Dê uma nota e, se quiser, conte o que achou do filme.</p>
         </div>
       </div>
 
@@ -141,13 +138,11 @@ export function ReviewForm({ movieId, onCreated }: ReviewFormProps) {
         </fieldset>
 
         <label className="field review-form__comment">
-          <span>Comentário <b aria-hidden="true">*</b></span>
+          <span>Comentário <small>(opcional)</small></span>
           <textarea
-            aria-invalid={Boolean(errors.comentario)}
             maxLength={4000}
             onChange={(event) => {
               setComment(event.target.value);
-              setErrors((current) => ({ ...current, comentario: undefined }));
               clearFeedback();
             }}
             placeholder="O que você achou deste filme?"
@@ -155,9 +150,6 @@ export function ReviewForm({ movieId, onCreated }: ReviewFormProps) {
             value={comment}
           />
           <small className="field__counter">{comment.length}/4000</small>
-          {errors.comentario && (
-            <small className="field__error">{errors.comentario}</small>
-          )}
         </label>
       </div>
 

@@ -47,11 +47,11 @@ export interface Review {
 export interface ReviewCreatePayload {
   nome: string;
   nota: number;
-  comentario: string;
+  comentario: string | null;
 }
 
 export interface ReviewCreated {
-  review: Review;
+  review: Review | null;
   avaliacoes: ReviewSummary;
 }
 
