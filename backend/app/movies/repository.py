@@ -58,6 +58,17 @@ class MovieRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_for_review(self, sk_movie_id: str) -> DimMovie | None:
+        """Busca o filme e bloqueia seu resumo durante o cálculo da nova média."""
+
+        result = await self.session.execute(
+            select(DimMovie)
+            .where(DimMovie.sk_movie_id == sk_movie_id)
+            .options(joinedload(DimMovie.reviews_summary))
+            .with_for_update()
+        )
+        return result.scalar_one_or_none()
+
     async def get_or_create_genre(self, name: str) -> DimGenre:
         result = await self.session.execute(
             select(DimGenre).where(func.lower(DimGenre.nome_genero) == name.lower())

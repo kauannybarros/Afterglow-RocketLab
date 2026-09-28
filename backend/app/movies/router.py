@@ -7,7 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.errors import ErrorResponse
 from app.db.session import get_db
-from app.movies.schemas import MovieCreate, MovieDetail, MoviePage
+from app.movies.schemas import (
+    MovieCreate,
+    MovieDetail,
+    MoviePage,
+    ReviewCreate,
+    ReviewCreated,
+)
 from app.movies.service import MovieService
 
 router = APIRouter(prefix="/movies", tags=["movies"])
@@ -50,6 +56,25 @@ async def get_movie_detail(
     """Retorna todas as informações e avaliações de um filme."""
 
     return await MovieService(session).get_detail(sk_movie_id)
+
+
+@router.post(
+    "/{sk_movie_id}/reviews",
+    response_model=ReviewCreated,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+    },
+)
+async def create_movie_review(
+    sk_movie_id: Annotated[str, Path(min_length=1, max_length=64)],
+    payload: ReviewCreate,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> ReviewCreated:
+    """Cadastra uma avaliação e retorna a nova média consolidada."""
+
+    return await MovieService(session).create_review(sk_movie_id, payload)
 
 
 @router.post(

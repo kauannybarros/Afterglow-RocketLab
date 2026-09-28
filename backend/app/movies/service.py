@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import DomainError
-from app.movies.models import DimMovie, DimPerson, DimReview, PersonType
+from app.movies.models import DimMovie, DimPerson, DimReview, MovieReview, PersonType
 from app.movies.repository import MovieRepository
 from app.movies.schemas import (
     CompanyRead,
@@ -19,6 +19,8 @@ from app.movies.schemas import (
     PaginationMeta,
     PerformanceRead,
     PersonRead,
+    ReviewCreate,
+    ReviewCreated,
     ReviewRead,
     ReviewSummary,
 )
@@ -135,6 +137,57 @@ class MovieService:
                 status_code=404,
             )
         return self._to_detail(movie)
+
+    async def create_review(
+        self,
+        sk_movie_id: str,
+        payload: ReviewCreate,
+    ) -> ReviewCreated:
+        """Registra uma avaliação e atualiza o resumo do filme atomicamente."""
+
+        async with self.session.begin():
+            movie = await self.repository.get_for_review(sk_movie_id)
+            if movie is None:
+                raise DomainError(
+                    code="movie_not_found",
+                    message="Filme não encontrado.",
+                    status_code=404,
+                )
+
+            review = MovieReview(
+                sk_movie_id=sk_movie_id,
+                nome=payload.nome,
+                nota=payload.nota,
+                comentario=payload.comentario,
+            )
+            summary = movie.reviews_summary
+            if summary is None:
+                summary = DimReview(
+                    sk_movie_id=sk_movie_id,
+                    qtd_avaliacoes_usuarios=0,
+                    nota_media_usuarios=None,
+                )
+                self.session.add(summary)
+
+            previous_count = summary.qtd_avaliacoes_usuarios
+            previous_average = summary.nota_media_usuarios or 0
+            new_count = previous_count + 1
+            summary.qtd_avaliacoes_usuarios = new_count
+            summary.nota_media_usuarios = (
+                previous_average * previous_count + payload.nota
+            ) / new_count
+
+            self.session.add(review)
+            await self.session.flush()
+            response = ReviewCreated(
+                review=ReviewRead.model_validate(review),
+                avaliacoes=ReviewSummary(
+                    qtd_avaliacoes=new_count,
+                    nota_media=summary.nota_media_usuarios,
+                ),
+            )
+
+        return response
 
     @staticmethod
     def _review_summary(movie: DimMovie) -> ReviewSummary:

@@ -140,6 +140,13 @@ class ReviewSummary(ApiModel):
     nota_media: float | None = Field(default=None, ge=0, le=10)
 
 
+class ReviewCreated(ApiModel):
+    """Avaliação criada acompanhada do resumo atualizado do filme."""
+
+    review: ReviewRead
+    avaliacoes: ReviewSummary
+
+
 class MovieSummary(ApiModel):
     """Representação compacta usada no catálogo."""
 
