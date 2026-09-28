@@ -4,7 +4,14 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 NonEmptyString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 PersonName = Annotated[NonEmptyString, StringConstraints(max_length=255)]
@@ -130,6 +137,17 @@ class ReviewCreate(ApiModel):
     comentario: (
         Annotated[NonEmptyString, StringConstraints(max_length=4000)] | None
     ) = None
+
+    @field_validator("nota", mode="before")
+    @classmethod
+    def cap_score_at_ten(cls, value: object) -> object:
+        """Limita notas numéricas acima da escala ao valor máximo."""
+
+        try:
+            number = float(value)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return value
+        return min(number, 10.0)
 
 
 class ReviewRead(ReviewCreate):

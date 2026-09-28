@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.db.base import Base
-from app.db.import_csv import import_csv_data
+from app.db.import_csv import _reconcile_review_summaries, import_csv_data
 from app.movies.models import (
     DimCompany,
     DimGenre,
@@ -148,7 +148,7 @@ async def test_import_csv_data_is_complete_and_idempotent(tmp_path: Path) -> Non
                 "sk_review_id": "summary-1",
                 "sk_movie_id": "movie-1",
                 "qtd_avaliacoes_usuarios": "1",
-                "nota_media_usuarios": "9.0",
+                "nota_media_usuarios": "3.0",
             }
         ],
     )
@@ -160,7 +160,7 @@ async def test_import_csv_data_is_complete_and_idempotent(tmp_path: Path) -> Non
                 "sk_movie_review_id": "review-1",
                 "sk_movie_id": "movie-1",
                 "nome": "Ana",
-                "nota": "9.0",
+                "nota": "12.0",
                 "comentario": "Excelente.",
             }
         ],
@@ -210,5 +210,65 @@ async def test_import_csv_data_is_complete_and_idempotent(tmp_path: Path) -> Non
 
         created_at = await connection.scalar(select(MovieReview.created_at))
         assert created_at is not None
+        imported_score = await connection.scalar(select(MovieReview.nota))
+        assert imported_score == 10
+        summary_count, summary_average = (
+            await connection.execute(
+                select(
+                    DimReview.qtd_avaliacoes_usuarios,
+                    DimReview.nota_media_usuarios,
+                )
+            )
+        ).one()
+        assert summary_count == 1
+        assert summary_average == 10
 
     await verification_engine.dispose()
+
+
+async def test_reconciliation_creates_missing_summary(tmp_path: Path) -> None:
+    database_url = f"sqlite+aiosqlite:///{tmp_path / 'missing-summary.db'}"
+    engine = create_async_engine(database_url)
+
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+        await connection.execute(
+            DimMovie.__table__.insert().values(
+                sk_movie_id="movie-without-summary",
+                id_filme="missing-summary",
+                titulo="Filme avaliado",
+            )
+        )
+        await connection.execute(
+            MovieReview.__table__.insert(),
+            [
+                {
+                    "sk_movie_review_id": "rating-1",
+                    "sk_movie_id": "movie-without-summary",
+                    "nome": "Ana",
+                    "nota": 2.0,
+                    "comentario": None,
+                },
+                {
+                    "sk_movie_review_id": "rating-2",
+                    "sk_movie_id": "movie-without-summary",
+                    "nome": "Bia",
+                    "nota": 4.0,
+                    "comentario": "Regular.",
+                },
+            ],
+        )
+        await _reconcile_review_summaries(connection)
+
+        summary_count, summary_average = (
+            await connection.execute(
+                select(
+                    DimReview.qtd_avaliacoes_usuarios,
+                    DimReview.nota_media_usuarios,
+                )
+            )
+        ).one()
+
+    await engine.dispose()
+    assert summary_count == 2
+    assert summary_average == 3.0

@@ -20,8 +20,8 @@ def test_movie_create_normalizes_basic_fields() -> None:
     assert movie.diretores == ["Walter Salles"]
 
 
-@pytest.mark.parametrize("score", [-0.1, 10.1])
-def test_review_score_must_be_between_zero_and_ten(score: float) -> None:
+@pytest.mark.parametrize("score", [-0.1, -10])
+def test_review_score_cannot_be_negative(score: float) -> None:
     with pytest.raises(ValidationError):
         ReviewCreate(nome="Pessoa", nota=score, comentario="Comentário")
 
@@ -29,6 +29,10 @@ def test_review_score_must_be_between_zero_and_ten(score: float) -> None:
 def test_review_accepts_score_range_boundaries() -> None:
     assert ReviewCreate(nome="Pessoa", nota=0, comentario="Ruim").nota == 0
     assert ReviewCreate(nome="Pessoa", nota=10, comentario="Ótimo").nota == 10
+
+
+def test_review_caps_scores_above_ten() -> None:
+    assert ReviewCreate(nome="Pessoa", nota=12.5, comentario="Ótimo").nota == 10
 
 
 def test_review_accepts_rating_without_comment() -> None:

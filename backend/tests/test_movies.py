@@ -378,6 +378,44 @@ async def test_create_rating_with_comment_returns_public_review(
     assert len(detail.json()["reviews"]) == 1
 
 
+async def test_create_rating_recalculates_inconsistent_imported_summary(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, session_factory = movie_client
+    create_response = await client.post(
+        "/api/v1/movies",
+        json={"titulo": "Média divergente"},
+    )
+    movie_id = create_response.json()["sk_movie_id"]
+
+    async with session_factory.begin() as session:
+        summary = await session.scalar(
+            select(DimReview).where(DimReview.sk_movie_id == movie_id)
+        )
+        assert summary is not None
+        summary.qtd_avaliacoes_usuarios = 1
+        summary.nota_media_usuarios = 10
+        session.add(
+            MovieReview(
+                sk_movie_id=movie_id,
+                nome="Ana",
+                nota=2,
+                comentario=None,
+            )
+        )
+
+    response = await client.post(
+        f"/api/v1/movies/{movie_id}/reviews",
+        json={"nome": "Bia", "nota": 3},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["avaliacoes"] == {
+        "qtd_avaliacoes": 2,
+        "nota_media": 2.5,
+    }
+
+
 async def test_movie_lists_include_two_permanent_lists(
     movie_client: tuple[AsyncClient, TestSessionFactory],
 ) -> None:

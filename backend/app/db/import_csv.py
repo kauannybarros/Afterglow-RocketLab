@@ -107,6 +107,13 @@ def _float(value: str) -> float:
     return number
 
 
+def _rating(value: str) -> float:
+    number = _float(value)
+    if number < 0:
+        raise ValueError("nota não pode ser negativa")
+    return min(number, 10.0)
+
+
 BASE_1_SPECS = (
     ImportSpec(
         "dim_companies.csv",
@@ -204,7 +211,7 @@ BASE_1_REVIEW_SPECS = (
             "sk_review_id": _required_text,
             "sk_movie_id": _required_text,
             "qtd_avaliacoes_usuarios": _integer,
-            "nota_media_usuarios": _optional(_float),
+            "nota_media_usuarios": _optional(_rating),
         },
     ),
 )
@@ -217,7 +224,7 @@ BASE_2_REVIEW_SPECS = (
             "sk_movie_review_id": _required_text,
             "sk_movie_id": _required_text,
             "nome": _required_text,
-            "nota": _float,
+            "nota": _rating,
             "comentario": _optional_text,
         },
     ),
@@ -344,6 +351,57 @@ async def _validate_foreign_keys(connection: AsyncConnection) -> None:
         raise CsvImportError(f"violações de chave estrangeira encontradas: {violations}")
 
 
+async def _reconcile_review_summaries(connection: AsyncConnection) -> None:
+    """Substitui os resumos importados pelos agregados das notas individuais."""
+
+    reviews = MovieReview.__table__
+    summaries = DimReview.__table__
+    missing_summaries = (
+        select(
+            reviews.c.sk_movie_id,
+            reviews.c.sk_movie_id,
+            func.count(reviews.c.sk_movie_review_id),
+            func.avg(reviews.c.nota),
+        )
+        .select_from(
+            reviews.outerjoin(
+                summaries,
+                summaries.c.sk_movie_id == reviews.c.sk_movie_id,
+            )
+        )
+        .where(summaries.c.sk_movie_id.is_(None))
+        .group_by(reviews.c.sk_movie_id)
+    )
+    await connection.execute(
+        sqlite_insert(summaries).from_select(
+            [
+                "sk_review_id",
+                "sk_movie_id",
+                "qtd_avaliacoes_usuarios",
+                "nota_media_usuarios",
+            ],
+            missing_summaries,
+        )
+    )
+
+    review_count = (
+        select(func.count(reviews.c.sk_movie_review_id))
+        .where(reviews.c.sk_movie_id == summaries.c.sk_movie_id)
+        .scalar_subquery()
+    )
+    review_average = (
+        select(func.avg(reviews.c.nota))
+        .where(reviews.c.sk_movie_id == summaries.c.sk_movie_id)
+        .scalar_subquery()
+    )
+    await connection.execute(
+        summaries.update().values(
+            qtd_avaliacoes_usuarios=review_count,
+            nota_media_usuarios=review_average,
+        )
+    )
+
+
 async def import_csv_data(
     *,
     bases_1: Path,
@@ -390,6 +448,10 @@ async def import_csv_data(
                 f"{result.inserted:,} inseridos, "
                 f"{result.updated_or_ignored:,} atualizados/ignorados"
             )
+
+        async with import_engine.begin() as connection:
+            await _reconcile_review_summaries(connection)
+        print("Resumos de avaliações recalculados a partir das notas individuais.")
 
         async with import_engine.connect() as connection:
             await _validate_foreign_keys(connection)

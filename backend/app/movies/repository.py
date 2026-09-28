@@ -4,7 +4,15 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from app.movies.models import DimCompany, DimGenre, DimMovie, DimPerson, DimReview, PersonType
+from app.movies.models import (
+    DimCompany,
+    DimGenre,
+    DimMovie,
+    DimPerson,
+    DimReview,
+    MovieReview,
+    PersonType,
+)
 from app.movies.schemas import MovieSort
 
 
@@ -118,6 +126,15 @@ class MovieRepository:
             .with_for_update()
         )
         return result.scalar_one_or_none()
+
+    async def get_review_aggregate(self, sk_movie_id: str) -> tuple[int, float | None]:
+        result = await self.session.execute(
+            select(func.count(MovieReview.sk_movie_review_id), func.avg(MovieReview.nota)).where(
+                MovieReview.sk_movie_id == sk_movie_id
+            )
+        )
+        count, average = result.one()
+        return count, float(average) if average is not None else None
 
     async def get_for_update(self, sk_movie_id: str) -> DimMovie | None:
         """Carrega o agregado completo e bloqueia o filme durante a edição."""

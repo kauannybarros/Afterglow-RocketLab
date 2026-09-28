@@ -242,6 +242,9 @@ class MovieService:
                 nota=payload.nota,
                 comentario=payload.comentario,
             )
+            self.session.add(review)
+            await self.session.flush()
+
             summary = movie.reviews_summary
             if summary is None:
                 summary = DimReview(
@@ -251,15 +254,10 @@ class MovieService:
                 )
                 self.session.add(summary)
 
-            previous_count = summary.qtd_avaliacoes_usuarios
-            previous_average = summary.nota_media_usuarios or 0
-            new_count = previous_count + 1
+            new_count, new_average = await self.repository.get_review_aggregate(sk_movie_id)
             summary.qtd_avaliacoes_usuarios = new_count
-            summary.nota_media_usuarios = (
-                previous_average * previous_count + payload.nota
-            ) / new_count
+            summary.nota_media_usuarios = new_average
 
-            self.session.add(review)
             await self.session.flush()
             response = ReviewCreated(
                 review=(
@@ -269,7 +267,7 @@ class MovieService:
                 ),
                 avaliacoes=ReviewSummary(
                     qtd_avaliacoes=new_count,
-                    nota_media=summary.nota_media_usuarios,
+                    nota_media=new_average,
                 ),
             )
 
