@@ -86,6 +86,24 @@ bridge_movie_person = Table(
     ),
 )
 
+bridge_movie_list = Table(
+    "bridge_movie_list",
+    Base.metadata,
+    Column(
+        "sk_movie_list_id",
+        String(64),
+        ForeignKey("movie_lists.sk_movie_list_id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "sk_movie_id",
+        String(64),
+        ForeignKey("dim_movies.sk_movie_id", ondelete="CASCADE"),
+        primary_key=True,
+        index=True,
+    ),
+)
+
 
 class DimMovie(Base):
     """Metadados descritivos de um filme."""
@@ -124,6 +142,10 @@ class DimMovie(Base):
     )
     reviews: Mapped[list["MovieReview"]] = relationship(
         back_populates="movie", cascade="all, delete-orphan", order_by="MovieReview.created_at"
+    )
+    movie_lists: Mapped[list["MovieList"]] = relationship(
+        secondary=bridge_movie_list,
+        back_populates="movies",
     )
 
 
@@ -244,3 +266,22 @@ class DimReview(Base):
     nota_media_usuarios: Mapped[float | None] = mapped_column(Double, default=None)
 
     movie: Mapped[DimMovie] = relationship(back_populates="reviews_summary")
+
+
+class MovieList(Base):
+    """Coleção de filmes criada pelo administrador."""
+
+    __tablename__ = "movie_lists"
+
+    sk_movie_list_id: Mapped[str] = mapped_column(
+        String(64), primary_key=True, default=generate_surrogate_key
+    )
+    nome: Mapped[str] = mapped_column(String(120, collation="NOCASE"), unique=True, index=True)
+    descricao: Mapped[str | None] = mapped_column(String(1000), default=None)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    movies: Mapped[list[DimMovie]] = relationship(
+        secondary=bridge_movie_list,
+        back_populates="movie_lists",
+        order_by="DimMovie.titulo",
+    )

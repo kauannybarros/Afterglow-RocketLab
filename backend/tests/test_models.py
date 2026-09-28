@@ -6,6 +6,7 @@ def test_movie_schema_registers_expected_tables() -> None:
     expected_tables = {
         "bridge_movie_company",
         "bridge_movie_genre",
+        "bridge_movie_list",
         "bridge_movie_person",
         "dim_companies",
         "dim_genres",
@@ -14,6 +15,7 @@ def test_movie_schema_registers_expected_tables() -> None:
         "dim_reviews",
         "fact_movies_performance",
         "movie_reviews",
+        "movie_lists",
     }
 
     assert set(Base.metadata.tables) == expected_tables
