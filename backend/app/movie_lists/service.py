@@ -8,7 +8,9 @@ from app.movie_lists.repository import MovieListRepository
 from app.movie_lists.schemas import (
     MovieListCreate,
     MovieListDetail,
+    MovieListMembership,
     MovieListSummary,
+    MovieListUpdate,
     SystemMovieList,
 )
 from app.movies.models import DimMovie, MovieList
@@ -91,6 +93,75 @@ class MovieListService:
 
         return response
 
+    async def get_memberships(self, movie_id: str) -> MovieListMembership:
+        async with self.session.begin():
+            await self._ensure_system_lists()
+            if await self.repository.get_movie(movie_id) is None:
+                raise self._movie_not_found()
+            memberships = await self.repository.get_system_memberships(movie_id)
+
+        return MovieListMembership(
+            watchlist="WatchList" in memberships,
+            favorites="Favoritos" in memberships,
+        )
+
+    async def update(self, list_id: str, payload: MovieListUpdate) -> MovieListDetail:
+        """Renomeia uma lista personalizada."""
+
+        try:
+            async with self.session.begin():
+                await self._ensure_system_lists()
+                movie_list = await self.repository.get_detail(list_id, lock=True)
+                if movie_list is None:
+                    raise self._not_found()
+                if movie_list.is_system:
+                    raise self._protected("renomeadas")
+
+                existing = await self.repository.get_by_name(payload.nome)
+                if existing is not None and existing.sk_movie_list_id != list_id:
+                    raise DomainError(
+                        code="movie_list_name_conflict",
+                        message="Já existe uma lista com esse nome.",
+                        status_code=409,
+                    )
+
+                movie_list.nome = payload.nome
+                await self.session.flush()
+                response = self._to_detail(movie_list)
+        except IntegrityError as exc:
+            raise DomainError(
+                code="movie_list_name_conflict",
+                message="Já existe uma lista com esse nome.",
+                status_code=409,
+            ) from exc
+
+        return response
+
+    async def remove_movie(self, list_id: str, movie_id: str) -> MovieListDetail:
+        """Remove um filme de uma lista sem excluir nenhuma das entidades."""
+
+        async with self.session.begin():
+            movie_list = await self.repository.get_detail(list_id, lock=True)
+            if movie_list is None:
+                raise self._not_found()
+
+            movie = next(
+                (item for item in movie_list.movies if item.sk_movie_id == movie_id),
+                None,
+            )
+            if movie is None:
+                raise DomainError(
+                    code="movie_not_in_list",
+                    message="Este filme não faz parte da lista.",
+                    status_code=404,
+                )
+
+            movie_list.movies.remove(movie)
+            await self.session.flush()
+            response = self._to_detail(movie_list)
+
+        return response
+
     async def add_movie_to_system_list(
         self,
         system_list: SystemMovieList,
@@ -130,11 +201,7 @@ class MovieListService:
             if movie_list is None:
                 raise self._not_found()
             if movie_list.is_system:
-                raise DomainError(
-                    code="system_movie_list_protected",
-                    message="Listas permanentes não podem ser excluídas.",
-                    status_code=403,
-                )
+                raise self._protected("excluídas")
             await self.repository.delete(movie_list)
             await self.session.flush()
 
@@ -207,4 +274,12 @@ class MovieListService:
             code="movie_not_found",
             message="Filme não encontrado.",
             status_code=404,
+        )
+
+    @staticmethod
+    def _protected(action: str) -> DomainError:
+        return DomainError(
+            code="system_movie_list_protected",
+            message=f"Listas permanentes não podem ser {action}.",
+            status_code=403,
         )

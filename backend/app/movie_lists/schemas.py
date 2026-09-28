@@ -21,6 +21,12 @@ class MovieListCreate(ApiModel):
     sk_movie_id: Annotated[str, StringConstraints(min_length=1, max_length=64)] | None = None
 
 
+class MovieListUpdate(ApiModel):
+    """Campos editáveis de uma lista personalizada."""
+
+    nome: ListName
+
+
 class MovieListSummary(ApiModel):
     sk_movie_list_id: str
     nome: str
@@ -32,3 +38,8 @@ class MovieListSummary(ApiModel):
 
 class MovieListDetail(MovieListSummary):
     movies: list[MovieSummary] = Field(default_factory=list)
+
+
+class MovieListMembership(ApiModel):
+    watchlist: bool = False
+    favorites: bool = False

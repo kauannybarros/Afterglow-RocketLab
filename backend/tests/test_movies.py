@@ -400,6 +400,10 @@ async def test_quick_actions_add_movie_to_permanent_lists_without_duplicates(
     )
     movie_id = movie_response.json()["sk_movie_id"]
 
+    initial_memberships = await client.get(
+        f"/api/v1/movie-lists/memberships/{movie_id}"
+    )
+
     first_watchlist = await client.post(
         f"/api/v1/movie-lists/system/watchlist/movies/{movie_id}"
     )
@@ -411,12 +415,16 @@ async def test_quick_actions_add_movie_to_permanent_lists_without_duplicates(
     )
 
     assert first_watchlist.status_code == 200
+    assert initial_memberships.json() == {"watchlist": False, "favorites": False}
     assert first_watchlist.json()["nome"] == "WatchList"
     assert repeated_watchlist.status_code == 200
     assert repeated_watchlist.json()["qtd_filmes"] == 1
     assert favorite.status_code == 200
     assert favorite.json()["nome"] == "Favoritos"
     assert favorite.json()["movies"][0]["sk_movie_id"] == movie_id
+
+    memberships = await client.get(f"/api/v1/movie-lists/memberships/{movie_id}")
+    assert memberships.json() == {"watchlist": True, "favorites": True}
 
 
 async def test_permanent_lists_cannot_be_recreated_or_deleted(
@@ -433,11 +441,17 @@ async def test_permanent_lists_cannot_be_recreated_or_deleted(
     deletion = await client.delete(
         f"/api/v1/movie-lists/{watchlist['sk_movie_list_id']}"
     )
+    rename = await client.patch(
+        f"/api/v1/movie-lists/{watchlist['sk_movie_list_id']}",
+        json={"nome": "Assistir depois"},
+    )
 
     assert duplicate.status_code == 409
     assert duplicate.json()["error"]["code"] == "movie_list_name_conflict"
     assert deletion.status_code == 403
     assert deletion.json()["error"]["code"] == "system_movie_list_protected"
+    assert rename.status_code == 403
+    assert rename.json()["error"]["code"] == "system_movie_list_protected"
 
 
 async def test_custom_movie_list_can_be_deleted(
@@ -455,3 +469,37 @@ async def test_custom_movie_list_can_be_deleted(
 
     assert deletion.status_code == 204
     assert detail.status_code == 404
+
+
+async def test_custom_movie_list_can_be_renamed_and_have_movies_removed(
+    movie_client: tuple[AsyncClient, TestSessionFactory],
+) -> None:
+    client, _ = movie_client
+    movie_response = await client.post(
+        "/api/v1/movies",
+        json={"titulo": "Filme temporário"},
+    )
+    movie_id = movie_response.json()["sk_movie_id"]
+    list_response = await client.post(
+        "/api/v1/movie-lists",
+        json={
+            "nome": "Nome original",
+            "descricao": None,
+            "sk_movie_id": movie_id,
+        },
+    )
+    list_id = list_response.json()["sk_movie_list_id"]
+
+    rename = await client.patch(
+        f"/api/v1/movie-lists/{list_id}",
+        json={"nome": "Nome atualizado"},
+    )
+    removal = await client.delete(
+        f"/api/v1/movie-lists/{list_id}/movies/{movie_id}"
+    )
+
+    assert rename.status_code == 200
+    assert rename.json()["nome"] == "Nome atualizado"
+    assert removal.status_code == 200
+    assert removal.json()["qtd_filmes"] == 0
+    assert removal.json()["movies"] == []

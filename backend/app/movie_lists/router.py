@@ -10,7 +10,9 @@ from app.db.session import get_db
 from app.movie_lists.schemas import (
     MovieListCreate,
     MovieListDetail,
+    MovieListMembership,
     MovieListSummary,
+    MovieListUpdate,
     SystemMovieList,
 )
 from app.movie_lists.service import MovieListService
@@ -63,6 +65,43 @@ async def get_movie_list(
     return await MovieListService(session).get_detail(list_id)
 
 
+@router.get(
+    "/memberships/{movie_id}",
+    response_model=MovieListMembership,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+    },
+)
+async def get_movie_list_memberships(
+    movie_id: Annotated[str, Path(min_length=1, max_length=64)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> MovieListMembership:
+    """Informa se o filme está na WatchList ou nos Favoritos."""
+
+    return await MovieListService(session).get_memberships(movie_id)
+
+
+@router.patch(
+    "/{list_id}",
+    response_model=MovieListDetail,
+    responses={
+        status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_409_CONFLICT: {"model": ErrorResponse},
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+    },
+)
+async def update_movie_list(
+    list_id: Annotated[str, Path(min_length=1, max_length=64)],
+    payload: MovieListUpdate,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> MovieListDetail:
+    """Renomeia uma lista personalizada."""
+
+    return await MovieListService(session).update(list_id, payload)
+
+
 @router.post(
     "/{list_id}/movies/{movie_id}",
     response_model=MovieListDetail,
@@ -80,6 +119,24 @@ async def add_movie_to_list(
     """Adiciona um filme existente a uma lista existente."""
 
     return await MovieListService(session).add_movie(list_id, movie_id)
+
+
+@router.delete(
+    "/{list_id}/movies/{movie_id}",
+    response_model=MovieListDetail,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+    },
+)
+async def remove_movie_from_list(
+    list_id: Annotated[str, Path(min_length=1, max_length=64)],
+    movie_id: Annotated[str, Path(min_length=1, max_length=64)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> MovieListDetail:
+    """Retira um filme de uma lista."""
+
+    return await MovieListService(session).remove_movie(list_id, movie_id)
 
 
 @router.post(

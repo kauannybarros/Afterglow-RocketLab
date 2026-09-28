@@ -4,7 +4,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.movies.models import DimMovie, MovieList
+from app.movies.models import DimMovie, MovieList, bridge_movie_list
 
 
 class MovieListRepository:
@@ -57,6 +57,20 @@ class MovieListRepository:
             )
         )
         return result.scalar_one_or_none()
+
+    async def get_system_memberships(self, movie_id: str) -> set[str]:
+        result = await self.session.scalars(
+            select(MovieList.nome)
+            .join(
+                bridge_movie_list,
+                bridge_movie_list.c.sk_movie_list_id == MovieList.sk_movie_list_id,
+            )
+            .where(
+                bridge_movie_list.c.sk_movie_id == movie_id,
+                MovieList.is_system.is_(True),
+            )
+        )
+        return set(result)
 
     async def delete(self, movie_list: MovieList) -> None:
         await self.session.delete(movie_list)
